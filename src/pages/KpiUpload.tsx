@@ -26,45 +26,40 @@ const PAWN_KPIS = [
   { name: "dollar_pawns_defaulted", label: "$ pawns defaulted in" },
   { name: "num_pawns_defaulted", label: "# Pawns defaulted in" },
   { name: "psc_collected", label: "PSC collected in" },
+  { name: "num_pawns_renewed_30d", label: "# Pawns renewed in past 30 days" },
+  { name: "dollar_pawns_renewed_30d", label: "$ Pawns renewed in past 30 days" },
   { name: "num_buys_30d", label: "# Buys in past 30 days" },
   { name: "dollar_buys_30d", label: "$ Buys in past 30 days" },
+  { name: "default_rate_dollar", label: "Default Rate in $" },
+  { name: "default_rate_num", label: "Default Rate in # of pawns" },
   { name: "num_active_pawns", label: "# active Pawns" },
   { name: "avg_pawn", label: "Avg Pawn" },
   { name: "psc_30d", label: "PSC last 30 days" },
+  { name: "num_pawn_customers", label: "# Pawn Customers in" },
   { name: "unique_pawn_customers", label: "Unique Pawn customers" },
   { name: "avg_pawn_balance_per_customer", label: "Avg Pawn balance per customer" },
-  { name: "num_pawns_renewed_30d", label: "# Pawns renewed in past 30 days" },
-  { name: "dollar_pawns_renewed_30d", label: "$ Pawns renewed in past 30 days" },
-  { name: "default_rate_dollar", label: "Default Rate in $" },
-  { name: "default_rate_num", label: "Default Rate in # of pawns" },
 ];
 
 const MERCHANDISE_KPIS = [
   { name: "layaway_balance", label: "Layaway Balance" },
   { name: "num_active_layaways", label: "# active layaways" },
-  { name: "new_customers_30d", label: "New customers past 30 days" },
-  { name: "unique_customers_30d", label: "Unique Customers past 30 days" },
-  { name: "unique_customers_365d", label: "Unique Customers past 365 days" },
-  { name: "num_sales_transactions_30d", label: "# sales transactions past 30 days" },
-  { name: "retail_sales", label: "Retail Sales" },
-  { name: "gross_sales", label: "Gross Sales in" },
-  { name: "cogs", label: "COGS In" },
-  { name: "sales_transaction", label: "Sales transaction in" },
-  { name: "scrap_sales", label: "Scrap Sales in" },
-  { name: "cogs_scrap", label: "COGS for Scrap in" },
-  { name: "dollar_layaways_end", label: "$$ of Layaways at end of" },
-  { name: "num_layaways_end", label: "# of Layaways at end of" },
   { name: "dollar_new_layaways", label: "$$ New Layways written in" },
   { name: "num_new_layaways", label: "# New Layaways written in" },
   { name: "dollar_redeemed_layaways", label: "$$ Redeeemed Layaways in" },
   { name: "num_redeemed_layaways", label: "# Redeemed Layaways in" },
-  { name: "ending_inventory", label: "Ending Inventory in" },
+  { name: "num_sales_transactions_30d", label: "# sales transactions past 30 days" },
+  { name: "retail_sales", label: "Retail Sales" },
+  { name: "gross_sales", label: "Gross Sales in" },
+  { name: "cogs", label: "COGS In" },
+  { name: "gross_profits", label: "Gross Profits" },
+  { name: "sales_transaction", label: "Sales transaction in" },
+  { name: "scrap_sales", label: "Scrap Sales in" },
+  { name: "cogs_scrap", label: "COGS for Scrap in" },
 ];
 
 const MARKETING_KPIS = [
   { name: "marketing_text", label: "Text" },
-  { name: "marketing_social_media", label: "Social Media Ads" },
-  { name: "marketing_fb_google", label: "FB & Google" },
+  { name: "marketing_social_media", label: "Social Media Ads FB & Google" },
   { name: "marketing_print", label: "Print" },
   { name: "marketing_radio", label: "Radio" },
   { name: "marketing_tv", label: "TV" },
@@ -72,16 +67,12 @@ const MARKETING_KPIS = [
   { name: "marketing_consulting", label: "Consulting" },
   { name: "total_marketing_spent", label: "Total Marketing spent for" },
   { name: "num_google_reviews", label: "# Google reviews" },
-  { name: "num_pawn_customers", label: "# Pawn Customers in" },
   { name: "num_buy_customers", label: "# Buy Customers in" },
   { name: "num_retail_customers", label: "# Retail Customers in" },
-  { name: "num_unique_customers", label: "# Unique Customers in" },
-  { name: "num_unique_customers_365", label: "# Unique Customers 365 in" },
   { name: "customer_traffic", label: "Customer traffic thru door" },
-  { name: "yield_inventory", label: "Inventory Yield" },
-  { name: "yield_scrap", label: "Scrap Yield" },
-  { name: "yield_pawn", label: "Pawn Yield" },
-  { name: "yield_layaway", label: "Layaway Yield" },
+  { name: "new_customers_30d", label: "New customers past 30 days" },
+  { name: "unique_customers_30d", label: "Unique Customers past 30 days" },
+  { name: "unique_customers_365d", label: "Unique Customers past 365 days" },
 ];
 
 const AGED_INVENTORY_COLUMNS = ["Total", "Jewelry", "Tools", "Musical", "Games", "Firearms", "Coins Bullion", "Other"];
@@ -319,7 +310,7 @@ const KpiUpload = () => {
               category="merchandise"
             />
             <KpiInputColumn
-              title="Marketing Cost & Yields"
+              title="Marketing KPIs"
               fields={MARKETING_KPIS}
               values={marketingValues}
               onChange={(name, value) => setMarketingValues({ ...marketingValues, [name]: value })}
