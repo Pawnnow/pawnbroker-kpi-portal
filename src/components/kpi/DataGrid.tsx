@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 interface DataGridProps {
   title: string;
@@ -9,6 +10,24 @@ interface DataGridProps {
 }
 
 const DataGrid = ({ title, columns, rows, values, onChange }: DataGridProps) => {
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateNumeric = (value: string): boolean => {
+    if (value === "" || value === "-") return true;
+    // Allow numbers with optional decimals and negative sign
+    const numericPattern = /^-?\d*\.?\d*$/;
+    return numericPattern.test(value);
+  };
+
+  const handleChange = (key: string, value: string) => {
+    if (validateNumeric(value)) {
+      onChange(key, value);
+      setErrors((prev) => ({ ...prev, [key]: "" }));
+    } else {
+      setErrors((prev) => ({ ...prev, [key]: "Must be a number" }));
+    }
+  };
+
   return (
     <div className="bg-card rounded-lg border border-border p-6">
       <h3 className="text-lg font-bold text-foreground mb-4">{title}</h3>
@@ -32,15 +51,22 @@ const DataGrid = ({ title, columns, rows, values, onChange }: DataGridProps) => 
                 </td>
                 {columns.map((col) => {
                   const key = `${row}_${col}`;
+                  const hasError = !!errors[key];
                   return (
                     <td key={col} className="border border-border p-2">
-                      <Input
-                        type="text"
-                        value={values[key] || ""}
-                        onChange={(e) => onChange(key, e.target.value)}
-                        className="w-full text-right text-sm"
-                        placeholder="0"
-                      />
+                      <div className="flex flex-col">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={values[key] || ""}
+                          onChange={(e) => handleChange(key, e.target.value)}
+                          className={`w-full text-right text-sm ${hasError ? "border-destructive" : ""}`}
+                          placeholder="0"
+                        />
+                        {hasError && (
+                          <span className="text-xs text-destructive mt-1">{errors[key]}</span>
+                        )}
+                      </div>
                     </td>
                   );
                 })}
