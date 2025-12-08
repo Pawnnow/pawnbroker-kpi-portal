@@ -14,7 +14,7 @@ import DataGrid from "@/components/kpi/DataGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Download } from "lucide-react";
+import { LogOut, Download, BarChart3 } from "lucide-react";
 
 const PAWN_KPIS = [
   { name: "ending_pawn_balance", label: "Ending Pawn Balance" },
@@ -329,6 +329,10 @@ const KpiUpload = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">KPI Upload Portal</h1>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Dashboard
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={isExporting}>
               <Download className="w-4 h-4 mr-2" />
               {isExporting ? "Exporting..." : "Export CSV"}
