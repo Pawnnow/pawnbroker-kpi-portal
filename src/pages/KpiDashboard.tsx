@@ -1,17 +1,11 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Upload, TrendingUp, TrendingDown, DollarSign, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useKpiData, getMonthName, formatCurrency } from "@/hooks/useKpiData";
+import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import {
   ChartContainer,
   ChartTooltip,
@@ -28,7 +22,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  ResponsiveContainer,
   Legend,
 } from "recharts";
 
@@ -40,29 +33,36 @@ const CHART_COLORS = [
   "hsl(var(--chart-5))",
 ];
 
+interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
+
 const KpiDashboard = () => {
   const navigate = useNavigate();
   const { data: kpiData, isLoading, error } = useKpiData();
-  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
   };
 
-  // Get unique years from data
-  const availableYears = useMemo(() => {
-    if (!kpiData) return [];
-    const years = [...new Set(kpiData.map(d => d.year))].sort((a, b) => b - a);
-    return years;
-  }, [kpiData]);
-
-  // Filter data by selected year
+  // Filter data by date range
   const filteredData = useMemo(() => {
     if (!kpiData) return [];
-    if (selectedYear === "all") return kpiData;
-    return kpiData.filter(d => d.year === parseInt(selectedYear));
-  }, [kpiData, selectedYear]);
+    if (!dateRange.from && !dateRange.to) return kpiData;
+
+    return kpiData.filter(d => {
+      const entryDate = new Date(d.year, d.month - 1, 1);
+      if (dateRange.from && entryDate < dateRange.from) return false;
+      if (dateRange.to) {
+        const endOfMonth = new Date(dateRange.to.getFullYear(), dateRange.to.getMonth() + 1, 0);
+        if (entryDate > endOfMonth) return false;
+      }
+      return true;
+    });
+  }, [kpiData, dateRange]);
 
   // Prepare pawn balance trend data
   const pawnBalanceTrend = useMemo(() => {
@@ -206,21 +206,9 @@ const KpiDashboard = () => {
           </Card>
         ) : (
           <div className="space-y-6">
-            {/* Filter */}
+            {/* Date Range Filter */}
             <div className="flex justify-end">
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Filter by year" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
-                  <SelectItem value="all">All Years</SelectItem>
-                  {availableYears.map(year => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <DateRangePicker dateRange={dateRange} onDateRangeChange={setDateRange} />
             </div>
 
             {/* Summary Cards */}
