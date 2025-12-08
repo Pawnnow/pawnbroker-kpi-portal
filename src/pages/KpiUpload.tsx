@@ -14,7 +14,7 @@ import DataGrid from "@/components/kpi/DataGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, Download } from "lucide-react";
 
 const PAWN_KPIS = [
   { name: "ending_pawn_balance", label: "Ending Pawn Balance" },
@@ -99,6 +99,7 @@ const KpiUpload = () => {
   const [agedInventoryValues, setAgedInventoryValues] = useState<Record<string, string>>({});
   const [pawnBalanceValues, setPawnBalanceValues] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -123,6 +124,75 @@ const KpiUpload = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
+  };
+
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      const { data, error } = await supabase
+        .from("kpi_entries")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("year", { ascending: false })
+        .order("month", { ascending: false });
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast({
+          title: "No data to export",
+          description: "You haven't submitted any KPI data yet.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create CSV content
+      const headers = ["Year", "Month", "Category", "Field Name", "Field Label", "Value", "Created At"];
+      const csvRows = [
+        headers.join(","),
+        ...data.map(row => [
+          row.year,
+          row.month,
+          row.category,
+          `"${row.field_name}"`,
+          `"${row.field_label}"`,
+          `"${row.field_value || ""}"`,
+          `"${row.created_at}"`
+        ].join(","))
+      ];
+      const csvContent = csvRows.join("\n");
+
+      // Download file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `kpi_data_export_${new Date().toISOString().split("T")[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Export successful",
+        description: "Your KPI data has been exported to CSV.",
+      });
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export KPI data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -258,10 +328,16 @@ const KpiUpload = () => {
       <header className="bg-card border-b border-border shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">KPI Upload Portal</h1>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={isExporting}>
+              <Download className="w-4 h-4 mr-2" />
+              {isExporting ? "Exporting..." : "Export CSV"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
