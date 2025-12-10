@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -8,6 +8,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import MonthSelector from "@/components/kpi/MonthSelector";
 import KpiInputColumn from "@/components/kpi/KpiInputColumn";
 import DataGrid from "@/components/kpi/DataGrid";
@@ -90,6 +99,8 @@ const PAWN_BALANCE_ROWS = [
   "Pawn Balance",
 ];
 
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
 const KpiUpload = () => {
   const [year, setYear] = useState<number | null>(null);
   const [month, setMonth] = useState<number | null>(null);
@@ -100,12 +111,76 @@ const KpiUpload = () => {
   const [pawnBalanceValues, setPawnBalanceValues] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [availableMonths, setAvailableMonths] = useState<{ year: number; month: number }[]>([]);
+  const [selectedExportMonths, setSelectedExportMonths] = useState<Set<string>>(new Set());
   
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear + i);
+
+  // Fetch available months when export dialog opens
+  useEffect(() => {
+    if (exportDialogOpen) {
+      fetchAvailableMonths();
+    }
+  }, [exportDialogOpen]);
+
+  const fetchAvailableMonths = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("kpi_entries")
+        .select("year, month")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      // Get unique year-month combinations
+      const uniqueMonths = new Map<string, { year: number; month: number }>();
+      data?.forEach(row => {
+        const key = `${row.year}-${row.month}`;
+        if (!uniqueMonths.has(key)) {
+          uniqueMonths.set(key, { year: row.year, month: row.month });
+        }
+      });
+
+      const sorted = Array.from(uniqueMonths.values()).sort((a, b) => {
+        if (a.year !== b.year) return b.year - a.year;
+        return b.month - a.month;
+      });
+
+      setAvailableMonths(sorted);
+      // Select all by default
+      setSelectedExportMonths(new Set(sorted.map(m => `${m.year}-${m.month}`)));
+    } catch (error) {
+      console.error("Error fetching available months:", error);
+    }
+  };
+
+  const toggleMonthSelection = (key: string) => {
+    setSelectedExportMonths(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleAllMonths = () => {
+    if (selectedExportMonths.size === availableMonths.length) {
+      setSelectedExportMonths(new Set());
+    } else {
+      setSelectedExportMonths(new Set(availableMonths.map(m => `${m.year}-${m.month}`)));
+    }
+  };
 
   const handleClear = () => {
     setYear(null);
@@ -127,7 +202,18 @@ const KpiUpload = () => {
   };
 
   const handleExportCSV = async () => {
+    if (selectedExportMonths.size === 0) {
+      toast({
+        title: "No months selected",
+        description: "Please select at least one month to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsExporting(true);
+    setExportDialogOpen(false);
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -143,10 +229,16 @@ const KpiUpload = () => {
 
       if (error) throw error;
 
-      if (!data || data.length === 0) {
+      // Filter by selected months
+      const filteredData = data?.filter(row => {
+        const key = `${row.year}-${row.month}`;
+        return selectedExportMonths.has(key);
+      });
+
+      if (!filteredData || filteredData.length === 0) {
         toast({
           title: "No data to export",
-          description: "You haven't submitted any KPI data yet.",
+          description: "No data found for the selected months.",
           variant: "destructive",
         });
         return;
@@ -156,7 +248,7 @@ const KpiUpload = () => {
       const headers = ["Year", "Month", "Category", "Field Name", "Field Label", "Value", "Created At"];
       const csvRows = [
         headers.join(","),
-        ...data.map(row => [
+        ...filteredData.map(row => [
           row.year,
           row.month,
           row.category,
@@ -181,7 +273,7 @@ const KpiUpload = () => {
 
       toast({
         title: "Export successful",
-        description: "Your KPI data has been exported to CSV.",
+        description: `Exported KPI data for ${selectedExportMonths.size} month(s).`,
       });
     } catch (error) {
       console.error("Error exporting data:", error);
@@ -333,7 +425,7 @@ const KpiUpload = () => {
               <BarChart3 className="w-4 h-4 mr-2" />
               Dashboard
             </Button>
-            <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={isExporting}>
+            <Button variant="outline" size="sm" onClick={() => setExportDialogOpen(true)} disabled={isExporting}>
               <Download className="w-4 h-4 mr-2" />
               {isExporting ? "Exporting..." : "Export CSV"}
             </Button>
@@ -427,6 +519,57 @@ const KpiUpload = () => {
           </div>
         </div>
       </main>
+
+      {/* Export Month Selection Dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Months to Export</DialogTitle>
+            <DialogDescription>
+              Choose which months you want to include in the CSV export.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="max-h-64 overflow-y-auto space-y-2 py-4">
+            {availableMonths.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No data available to export.</p>
+            ) : (
+              <>
+                <div className="flex items-center space-x-2 pb-2 border-b border-border">
+                  <Checkbox
+                    id="select-all"
+                    checked={selectedExportMonths.size === availableMonths.length}
+                    onCheckedChange={toggleAllMonths}
+                  />
+                  <Label htmlFor="select-all" className="font-semibold">Select All</Label>
+                </div>
+                {availableMonths.map(({ year: y, month: m }) => {
+                  const key = `${y}-${m}`;
+                  return (
+                    <div key={key} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={key}
+                        checked={selectedExportMonths.has(key)}
+                        onCheckedChange={() => toggleMonthSelection(key)}
+                      />
+                      <Label htmlFor={key}>{MONTH_NAMES[m - 1]} {y}</Label>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleExportCSV} disabled={selectedExportMonths.size === 0 || isExporting}>
+              {isExporting ? "Exporting..." : `Export ${selectedExportMonths.size} Month(s)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
