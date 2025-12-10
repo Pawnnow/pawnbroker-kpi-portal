@@ -88,7 +88,8 @@ const KpiDashboard = () => {
     filteredData
       .filter(d => marketingFields.includes(d.field_name))
       .forEach(d => {
-        const label = d.field_label.replace("Marketing ", "").replace("marketing_", "");
+        // Use field_label directly without transformation
+        const label = d.field_label;
         result[label] = (result[label] || 0) + formatCurrency(d.field_value);
       });
 
