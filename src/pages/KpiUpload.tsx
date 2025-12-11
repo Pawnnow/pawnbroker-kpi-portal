@@ -266,23 +266,70 @@ const KpiUpload = () => {
         return monthB - monthA;
       });
 
+      // Define all KPIs in order for consistent export
+      const allKpis = [
+        { category: "Pawn KPIs", fields: PAWN_KPIS },
+        { category: "Merchandise KPIs", fields: MERCHANDISE_KPIS },
+        { category: "Marketing KPIs", fields: MARKETING_KPIS },
+      ];
+
       // Create a sheet for each month
       sortedKeys.forEach(key => {
         const monthData = dataByMonth.get(key)!;
         const [yearNum, monthNum] = key.split('-').map(Number);
         const sheetName = `${MONTH_NAMES[monthNum - 1]} ${yearNum}`;
         
-        // Prepare data for the sheet
-        const sheetData = monthData.map(row => ({
-          "Category": row.category,
-          "Field Name": row.field_name,
-          "Field Label": row.field_label,
-          "Value": row.field_value || "",
-          "Created At": row.created_at,
-        }));
+        // Create a map for quick lookup
+        const valueMap = new Map<string, string>();
+        monthData.forEach(row => {
+          valueMap.set(row.field_name, row.field_value || "");
+        });
+
+        // Build sheet data following the form structure
+        const sheetData: { Category: string; Label: string; Value: string }[] = [];
+        
+        allKpis.forEach(({ category, fields }) => {
+          fields.forEach(field => {
+            sheetData.push({
+              "Category": category,
+              "Label": field.label,
+              "Value": valueMap.get(field.name) || "",
+            });
+          });
+        });
+
+        // Add Aged Inventory Grid data
+        AGED_INVENTORY_ROWS.forEach(row => {
+          AGED_INVENTORY_COLUMNS.forEach(col => {
+            const fieldName = `aged_${row}_${col}`;
+            const value = valueMap.get(fieldName) || "";
+            if (value) {
+              sheetData.push({
+                "Category": "Aged Inventory",
+                "Label": `${row} - ${col}`,
+                "Value": value,
+              });
+            }
+          });
+        });
+
+        // Add Pawn Balance Grid data
+        PAWN_BALANCE_ROWS.forEach(row => {
+          PAWN_BALANCE_COLUMNS.forEach(col => {
+            const fieldName = `pawn_balance_${row}_${col}`;
+            const value = valueMap.get(fieldName) || "";
+            if (value) {
+              sheetData.push({
+                "Category": "Pawn Balance Breakdown",
+                "Label": `${row} - ${col}`,
+                "Value": value,
+              });
+            }
+          });
+        });
 
         const worksheet = XLSX.utils.json_to_sheet(sheetData);
-        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.substring(0, 31)); // Excel limits sheet names to 31 chars
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.substring(0, 31));
       });
 
       // Download file
