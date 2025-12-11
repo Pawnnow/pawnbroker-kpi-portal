@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Download, BarChart3 } from "lucide-react";
+import * as XLSX from "xlsx";
 
 const PAWN_KPIS = [
   { name: "ending_pawn_balance", label: "Ending Pawn Balance" },
@@ -201,7 +202,7 @@ const KpiUpload = () => {
     navigate("/auth");
   };
 
-  const handleExportCSV = async () => {
+  const handleExportExcel = async () => {
     if (selectedExportMonths.size === 0) {
       toast({
         title: "No months selected",
@@ -244,36 +245,52 @@ const KpiUpload = () => {
         return;
       }
 
-      // Create CSV content
-      const headers = ["Year", "Month", "Category", "Field Name", "Field Label", "Value", "Created At"];
-      const csvRows = [
-        headers.join(","),
-        ...filteredData.map(row => [
-          row.year,
-          row.month,
-          row.category,
-          `"${row.field_name}"`,
-          `"${row.field_label}"`,
-          `"${row.field_value || ""}"`,
-          `"${row.created_at}"`
-        ].join(","))
-      ];
-      const csvContent = csvRows.join("\n");
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+
+      // Group data by month
+      const dataByMonth = new Map<string, typeof filteredData>();
+      filteredData.forEach(row => {
+        const key = `${row.year}-${row.month}`;
+        if (!dataByMonth.has(key)) {
+          dataByMonth.set(key, []);
+        }
+        dataByMonth.get(key)!.push(row);
+      });
+
+      // Sort months for consistent sheet order
+      const sortedKeys = Array.from(dataByMonth.keys()).sort((a, b) => {
+        const [yearA, monthA] = a.split('-').map(Number);
+        const [yearB, monthB] = b.split('-').map(Number);
+        if (yearA !== yearB) return yearB - yearA;
+        return monthB - monthA;
+      });
+
+      // Create a sheet for each month
+      sortedKeys.forEach(key => {
+        const monthData = dataByMonth.get(key)!;
+        const [yearNum, monthNum] = key.split('-').map(Number);
+        const sheetName = `${MONTH_NAMES[monthNum - 1]} ${yearNum}`;
+        
+        // Prepare data for the sheet
+        const sheetData = monthData.map(row => ({
+          "Category": row.category,
+          "Field Name": row.field_name,
+          "Field Label": row.field_label,
+          "Value": row.field_value || "",
+          "Created At": row.created_at,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(sheetData);
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.substring(0, 31)); // Excel limits sheet names to 31 chars
+      });
 
       // Download file
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", `kpi_data_export_${new Date().toISOString().split("T")[0]}.csv`);
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      XLSX.writeFile(workbook, `kpi_data_export_${new Date().toISOString().split("T")[0]}.xlsx`);
 
       toast({
         title: "Export successful",
-        description: `Exported KPI data for ${selectedExportMonths.size} month(s).`,
+        description: `Exported KPI data for ${selectedExportMonths.size} month(s) to Excel.`,
       });
     } catch (error) {
       console.error("Error exporting data:", error);
@@ -427,7 +444,7 @@ const KpiUpload = () => {
             </Button>
             <Button variant="outline" size="sm" onClick={() => setExportDialogOpen(true)} disabled={isExporting}>
               <Download className="w-4 h-4 mr-2" />
-              {isExporting ? "Exporting..." : "Export CSV"}
+              {isExporting ? "Exporting..." : "Export Excel"}
             </Button>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
@@ -526,7 +543,7 @@ const KpiUpload = () => {
           <DialogHeader>
             <DialogTitle>Select Months to Export</DialogTitle>
             <DialogDescription>
-              Choose which months you want to include in the CSV export.
+              Choose which months you want to include in the Excel export. Each month will be on its own sheet.
             </DialogDescription>
           </DialogHeader>
           
@@ -564,7 +581,7 @@ const KpiUpload = () => {
             <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleExportCSV} disabled={selectedExportMonths.size === 0 || isExporting}>
+            <Button onClick={handleExportExcel} disabled={selectedExportMonths.size === 0 || isExporting}>
               {isExporting ? "Exporting..." : `Export ${selectedExportMonths.size} Month(s)`}
             </Button>
           </DialogFooter>
