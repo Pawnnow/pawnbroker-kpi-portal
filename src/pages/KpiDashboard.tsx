@@ -331,13 +331,13 @@ const KpiDashboard = () => {
                     <CardTitle>Marketing Spend Breakdown</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[350px]">
-                      <PieChart margin={{ top: 20, right: 80, bottom: 20, left: 80 }}>
+                    <ChartContainer config={chartConfig} className="h-[450px]">
+                      <PieChart margin={{ top: 40, right: 100, bottom: 40, left: 100 }}>
                         <Pie
                           data={marketingBreakdown}
                           cx="50%"
                           cy="50%"
-                          outerRadius={80}
+                          outerRadius={120}
                           dataKey="value"
                           nameKey="name"
                           label={({ cx, cy, midAngle, outerRadius, name, percent }) => {
