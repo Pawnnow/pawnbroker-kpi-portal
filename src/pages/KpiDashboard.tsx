@@ -283,7 +283,7 @@ const KpiDashboard = () => {
                     <CardTitle>Pawn Balance Trend</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[300px]">
+                    <ChartContainer config={chartConfig} className="h-[350px] w-full">
                       <LineChart data={pawnBalanceTrend}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                         <XAxis dataKey="period" className="text-xs" />
@@ -309,8 +309,8 @@ const KpiDashboard = () => {
                     <CardTitle>Monthly Performance</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[300px]">
-                      <BarChart data={monthlyComparisons}>
+                    <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                      <BarChart data={monthlyComparisons} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                         <XAxis dataKey="period" className="text-xs" />
                         <YAxis className="text-xs" />
@@ -331,13 +331,13 @@ const KpiDashboard = () => {
                     <CardTitle>Marketing Spend Breakdown</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[450px]">
-                      <PieChart margin={{ top: 40, right: 100, bottom: 40, left: 100 }}>
+                    <ChartContainer config={chartConfig} className="h-[350px] w-full">
+                      <PieChart margin={{ top: 20, right: 80, bottom: 20, left: 80 }}>
                         <Pie
                           data={marketingBreakdown}
                           cx="50%"
                           cy="50%"
-                          outerRadius={120}
+                          outerRadius={100}
                           dataKey="value"
                           nameKey="name"
                           label={({ cx, cy, midAngle, outerRadius, name, percent }) => {
