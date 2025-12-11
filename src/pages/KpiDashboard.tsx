@@ -332,21 +332,23 @@ const KpiDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <ChartContainer config={chartConfig} className="h-[300px]">
-                      <PieChart>
+                      <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                         <Pie
                           data={marketingBreakdown}
                           cx="50%"
                           cy="50%"
-                          labelLine={false}
-                          outerRadius={100}
+                          outerRadius={80}
                           dataKey="value"
+                          nameKey="name"
                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          labelLine={true}
                         >
                           {marketingBreakdown.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                           ))}
                         </Pie>
                         <ChartTooltip content={<ChartTooltipContent />} />
+                        <Legend />
                       </PieChart>
                     </ChartContainer>
                   </CardContent>
