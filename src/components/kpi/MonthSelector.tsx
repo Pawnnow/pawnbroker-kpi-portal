@@ -29,12 +29,14 @@ const MonthSelector = ({ value, onChange }: MonthSelectorProps) => {
   const selectedMonth = MONTHS.find((m) => m.value === value);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="w-full justify-start">
-          {selectedMonth ? selectedMonth.label : "Select Month"}
-        </Button>
-      </PopoverTrigger>
+    <div className="space-y-1">
+      <label className="text-sm font-medium text-muted-foreground">Month</label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="w-full justify-start">
+            {selectedMonth ? selectedMonth.label : "Select Month"}
+          </Button>
+        </PopoverTrigger>
       <PopoverContent className="w-auto p-4 bg-popover border-border z-50">
         <div className="grid grid-cols-4 gap-2">
           {MONTHS.map((month) => (
@@ -51,6 +53,7 @@ const MonthSelector = ({ value, onChange }: MonthSelectorProps) => {
         </div>
       </PopoverContent>
     </Popover>
+    </div>
   );
 };
 
