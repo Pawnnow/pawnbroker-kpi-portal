@@ -331,8 +331,8 @@ const KpiDashboard = () => {
                     <CardTitle>Marketing Spend Breakdown</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[300px]">
-                      <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                    <ChartContainer config={chartConfig} className="h-[350px]">
+                      <PieChart margin={{ top: 20, right: 80, bottom: 20, left: 80 }}>
                         <Pie
                           data={marketingBreakdown}
                           cx="50%"
@@ -340,7 +340,40 @@ const KpiDashboard = () => {
                           outerRadius={80}
                           dataKey="value"
                           nameKey="name"
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          label={({ cx, cy, midAngle, outerRadius, name, percent }) => {
+                            const RADIAN = Math.PI / 180;
+                            const radius = outerRadius * 1.35;
+                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                            const percentText = `${(percent * 100).toFixed(0)}%`;
+                            
+                            // Split long names into two lines
+                            const words = name.split(' ');
+                            let line1 = '';
+                            let line2 = '';
+                            
+                            if (words.length > 2) {
+                              const midpoint = Math.ceil(words.length / 2);
+                              line1 = words.slice(0, midpoint).join(' ');
+                              line2 = words.slice(midpoint).join(' ') + ' ' + percentText;
+                            } else {
+                              line1 = name;
+                              line2 = percentText;
+                            }
+                            
+                            return (
+                              <text
+                                x={x}
+                                y={y}
+                                textAnchor={x > cx ? 'start' : 'end'}
+                                dominantBaseline="central"
+                                className="fill-foreground text-xs"
+                              >
+                                <tspan x={x} dy="-0.5em">{line1}</tspan>
+                                <tspan x={x} dy="1.2em">{line2}</tspan>
+                              </text>
+                            );
+                          }}
                           labelLine={true}
                         >
                           {marketingBreakdown.map((_, index) => (
@@ -348,7 +381,6 @@ const KpiDashboard = () => {
                           ))}
                         </Pie>
                         <ChartTooltip content={<ChartTooltipContent />} />
-                        <Legend />
                       </PieChart>
                     </ChartContainer>
                   </CardContent>
