@@ -20,10 +20,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import MonthSelector from "@/components/kpi/MonthSelector";
 import KpiInputColumn from "@/components/kpi/KpiInputColumn";
 import DataGrid from "@/components/kpi/DataGrid";
+import ExcelIntegration from "@/components/kpi/ExcelIntegration";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Download, BarChart3 } from "lucide-react";
+import { LogOut, Download, BarChart3, Shield } from "lucide-react";
 import * as XLSX from "xlsx";
 
 const PAWN_KPIS = [
@@ -118,6 +120,7 @@ const KpiUpload = () => {
   
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { data: roleData } = useUserRole();
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear + i);
@@ -485,6 +488,12 @@ const KpiUpload = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">KPI Upload Portal</h1>
           <div className="flex gap-2">
+            {roleData?.isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
+                <Shield className="w-4 h-4 mr-2" />
+                Admin
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               <BarChart3 className="w-4 h-4 mr-2" />
               Dashboard
@@ -571,6 +580,9 @@ const KpiUpload = () => {
               onChange={(key, value) => setPawnBalanceValues({ ...pawnBalanceValues, [key]: value })}
             />
           </div>
+
+          {/* Excel Integration */}
+          <ExcelIntegration />
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-4">
