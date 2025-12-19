@@ -1,1 +1,7 @@
 project_id = "swsmmdnaivarrbjjakmx"
+
+[functions.kpi-export]
+verify_jwt = false
+
+[functions.manage-api-key]
+verify_jwt = false
