@@ -37,7 +37,7 @@ const ExcelIntegration = () => {
     Source = Json.Document(Web.Contents("${exportUrl || "YOUR_EXPORT_URL"}")),
     data = Source[data],
     #"Converted to Table" = Table.FromList(data, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-    #"Expanded Column" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"year", "month", "category", "field_label", "field_value"})
+    #"Expanded Column" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"year", "month", "category", "field_label", "field_value", "user_email"})
 in
     #"Expanded Column"`;
 
@@ -169,10 +169,16 @@ in
                 <h4 className="font-medium">Quick Setup (From Web)</h4>
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
                   <li>Open Excel → Data → Get Data → From Web</li>
-                  <li>Paste your Export URL</li>
-                  <li>Click OK and transform data as needed</li>
-                  <li>Click "Refresh" anytime for live data</li>
+                  <li>Paste your Export URL and click OK</li>
+                  <li>You'll see "data" and "meta" - click on "List" next to "data"</li>
+                  <li>Click "To Table" in the ribbon, then OK</li>
+                  <li>Click the expand icon (↔) on "Column1" header</li>
+                  <li>Select all fields and click OK</li>
+                  <li>Click "Close & Load" - refresh anytime for live data</li>
                 </ol>
+                <p className="text-xs text-muted-foreground mt-2 italic">
+                  Tip: For a smoother experience, use the M Code approach below instead.
+                </p>
               </div>
 
               <div className="space-y-2">
