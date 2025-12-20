@@ -45,11 +45,9 @@ const PAWN_KPIS = [
   { name: "default_rate_dollar", label: "Default Rate ($)" },
   { name: "default_rate_num", label: "Default Rate (# of Pawns)" },
   { name: "num_active_pawns", label: "# Active Pawns" },
-  { name: "avg_pawn", label: "Average Pawn" },
   { name: "psc_30d", label: "PSC (Last 30 Days)" },
   { name: "num_pawn_customers", label: "# Pawn Customers" },
   { name: "unique_pawn_customers", label: "Unique Pawn Customers" },
-  { name: "avg_pawn_balance_per_customer", label: "Average Pawn Balance per Customer" },
 ];
 
 const MERCHANDISE_KPIS = [
@@ -87,8 +85,8 @@ const MARKETING_KPIS = [
   { name: "unique_customers_365d", label: "Unique Customers (Past 365 Days)" },
 ];
 
-const AGED_INVENTORY_COLUMNS = ["Total", "Jewelry", "Tools", "Musical", "Games", "Firearms", "Coins Bullion", "Other"];
-const AGED_INVENTORY_ROWS = ["0-90", "91-120", "121-180", "181-210", "211-365", "365+"];
+const AGED_INVENTORY_COLUMNS = ["Total #", "Total $", "Jewelry", "Tools", "Musical", "Games", "Firearms", "Coins Bullion", "Other"];
+const AGED_INVENTORY_ROWS = ["0–90 Days", "91–120 Days", "121–180 Days", "181–210 Days", "211–365 Days", "365+ Days"];
 
 const PAWN_BALANCE_COLUMNS = ["$", "QTY"];
 const PAWN_BALANCE_ROWS = [
@@ -99,7 +97,6 @@ const PAWN_BALANCE_ROWS = [
   "$1001 - $2500",
   "$2501 - $5000",
   "$5001 plus",
-  "Pawn Balance",
 ];
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
