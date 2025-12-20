@@ -42,10 +42,7 @@ const PAWN_KPIS = [
   { name: "dollar_pawns_renewed_30d", label: "$ Pawns Renewed (Past 30 Days)" },
   { name: "num_buys_30d", label: "# Buys (Past 30 Days)" },
   { name: "dollar_buys_30d", label: "$ Buys (Past 30 Days)" },
-  { name: "default_rate_dollar", label: "Default Rate ($)" },
-  { name: "default_rate_num", label: "Default Rate (# of Pawns)" },
   { name: "num_active_pawns", label: "# Active Pawns" },
-  { name: "psc_30d", label: "PSC (Last 30 Days)" },
   { name: "num_pawn_customers", label: "# Pawn Customers" },
   { name: "unique_pawn_customers", label: "Unique Pawn Customers" },
 ];
