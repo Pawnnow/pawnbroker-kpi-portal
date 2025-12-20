@@ -59,7 +59,6 @@ const MERCHANDISE_KPIS = [
   { name: "gross_sales", label: "Gross Sales" },
   { name: "cogs", label: "COGS" },
   { name: "gross_profits", label: "Gross Profits" },
-  { name: "sales_transaction", label: "Sales Transactions" },
   { name: "scrap_sales", label: "Scrap Sales" },
   { name: "cogs_scrap", label: "COGS for Scrap" },
 ];
