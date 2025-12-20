@@ -6,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const getMonthName = (month: number): string => {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return months[month - 1] || "";
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -138,6 +143,7 @@ serve(async (req) => {
     const formattedData = kpiData?.map(row => ({
       year: row.year,
       month: row.month,
+      month_name: getMonthName(row.month),
       category: row.category,
       field_name: row.field_name,
       field_label: row.field_label,
