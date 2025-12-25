@@ -33,11 +33,15 @@ const ExcelIntegration = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Build URLs with format parameter
+  const baseUrl = exportUrl || "YOUR_EXPORT_URL";
+  const wideFormatUrl = baseUrl.includes('?') ? `${baseUrl}&format=wide` : `${baseUrl}?format=wide`;
+
   const powerQueryCode = `let
-    Source = Json.Document(Web.Contents("${exportUrl || "YOUR_EXPORT_URL"}")),
+    Source = Json.Document(Web.Contents("${wideFormatUrl}")),
     data = Source[data],
     #"Converted to Table" = Table.FromList(data, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-    #"Expanded Column" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"year", "month", "category", "field_label", "field_value", "user_email"})
+    #"Expanded Column" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", Record.FieldNames(data{0}))
 in
     #"Expanded Column"`;
 
@@ -81,21 +85,24 @@ in
             </div>
             {exportUrl && (
               <div className="space-y-2">
-                <Label>Export URL for Power Query</Label>
+                <Label>Export URL (Wide Format - Recommended)</Label>
                 <div className="flex gap-2">
                   <Input
-                    value={exportUrl}
+                    value={wideFormatUrl}
                     readOnly
                     className="font-mono text-xs"
                   />
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => handleCopy(exportUrl)}
+                    onClick={() => handleCopy(wideFormatUrl)}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Wide format gives you one row per user/month with each KPI as a column - ready for pivot tables.
+                </p>
               </div>
             )}
             <Button variant="outline" size="sm" onClick={clearNewKey}>
@@ -169,22 +176,22 @@ in
                 <h4 className="font-medium">Quick Setup (From Web)</h4>
                 <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
                   <li>Open Excel → Data → Get Data → From Web</li>
-                  <li>Paste your Export URL and click OK</li>
+                  <li>Paste your Export URL (with <code className="bg-muted px-1 rounded">format=wide</code>) and click OK</li>
                   <li>You'll see "data" and "meta" - click on "List" next to "data"</li>
                   <li>Click "To Table" in the ribbon, then OK</li>
                   <li>Click the expand icon (↔) on "Column1" header</li>
                   <li>Select all fields and click OK</li>
-                  <li>Click "Close & Load" - refresh anytime for live data</li>
+                  <li>Click "Close & Load" - your data is ready!</li>
                 </ol>
                 <p className="text-xs text-muted-foreground mt-2 italic">
-                  Tip: For a smoother experience, use the M Code approach below instead.
+                  The wide format gives you clean data with each KPI as its own column - perfect for pivot tables.
                 </p>
               </div>
 
               <div className="space-y-2">
                 <h4 className="font-medium">Advanced Setup (M Code)</h4>
                 <p className="text-muted-foreground">
-                  For more control, use this M code in Power Query:
+                  For automatic column detection, use this M code in Power Query:
                 </p>
                 <div className="relative">
                   <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
@@ -204,10 +211,23 @@ in
               <div className="space-y-2">
                 <h4 className="font-medium">URL Parameters</h4>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li><code className="bg-muted px-1 rounded">format=wide</code> - Pivot data (one row per user/month, KPIs as columns)</li>
+                  <li><code className="bg-muted px-1 rounded">format=long</code> - Raw data (one row per field, default)</li>
                   <li><code className="bg-muted px-1 rounded">year=2025</code> - Filter by year</li>
                   <li><code className="bg-muted px-1 rounded">month=6</code> - Filter by month</li>
                   <li><code className="bg-muted px-1 rounded">category=pawn</code> - Filter by category</li>
                 </ul>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-medium">Creating a Pivot Table</h4>
+                <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                  <li>After loading data, select it and go to Insert → PivotTable</li>
+                  <li>Drag <code className="bg-muted px-1 rounded">user_email</code> to Rows</li>
+                  <li>Drag <code className="bg-muted px-1 rounded">month_name</code> to Columns</li>
+                  <li>Drag any KPI field to Values</li>
+                  <li>Right-click values → Value Field Settings → change "Sum" to "Average" if needed</li>
+                </ol>
               </div>
             </div>
           )}
