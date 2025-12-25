@@ -23,6 +23,7 @@ serve(async (req) => {
     const yearFilter = url.searchParams.get('year');
     const monthFilter = url.searchParams.get('month');
     const categoryFilter = url.searchParams.get('category');
+    const format = url.searchParams.get('format') || 'long'; // 'long' (default) or 'wide'
 
     if (!apiKey) {
       console.log('Missing API key in request');
@@ -139,27 +140,63 @@ serve(async (req) => {
       }
     }
 
-    // Format response
-    const formattedData = kpiData?.map(row => ({
-      year: row.year,
-      month: row.month,
-      month_name: getMonthName(row.month),
-      category: row.category,
-      field_name: row.field_name,
-      field_label: row.field_label,
-      field_value: row.field_value,
-      ...(isAdmin && { 
-        user_id: row.user_id,
-        user_email: userEmails[row.user_id] || 'Unknown'
-      })
-    }));
+    // Format response based on requested format
+    let responseData;
+    
+    if (format === 'wide') {
+      // Pivot data to wide format: one row per user/year/month with KPI fields as columns
+      const pivotMap = new Map<string, Record<string, any>>();
+      
+      kpiData?.forEach(row => {
+        const key = isAdmin 
+          ? `${row.user_id}-${row.year}-${row.month}-${row.category}`
+          : `${row.year}-${row.month}-${row.category}`;
+        
+        if (!pivotMap.has(key)) {
+          pivotMap.set(key, {
+            year: row.year,
+            month: row.month,
+            month_name: getMonthName(row.month),
+            category: row.category,
+            ...(isAdmin && { 
+              user_id: row.user_id,
+              user_email: userEmails[row.user_id] || 'Unknown'
+            })
+          });
+        }
+        
+        // Add field value as a column using field_label as column name
+        const record = pivotMap.get(key)!;
+        // Clean the label to make it a valid column name
+        const columnName = row.field_label.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+        record[columnName] = row.field_value;
+      });
+      
+      responseData = Array.from(pivotMap.values());
+    } else {
+      // Long format (default) - current behavior
+      responseData = kpiData?.map(row => ({
+        year: row.year,
+        month: row.month,
+        month_name: getMonthName(row.month),
+        category: row.category,
+        field_name: row.field_name,
+        field_label: row.field_label,
+        field_value: row.field_value,
+        ...(isAdmin && { 
+          user_id: row.user_id,
+          user_email: userEmails[row.user_id] || 'Unknown'
+        })
+      }));
+    }
 
     const response = {
-      data: formattedData,
+      data: responseData,
       meta: {
-        total: formattedData?.length || 0,
+        total: responseData?.length || 0,
         fetched_at: new Date().toISOString(),
         is_admin_view: isAdmin,
+        format: format,
         filters: {
           year: yearFilter || null,
           month: monthFilter || null,
@@ -168,7 +205,7 @@ serve(async (req) => {
       }
     };
 
-    console.log(`Returning ${formattedData?.length || 0} records`);
+    console.log(`Returning ${responseData?.length || 0} records (format: ${format})`);
 
     return new Response(
       JSON.stringify(response),
