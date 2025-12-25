@@ -11,6 +11,39 @@ const getMonthName = (month: number): string => {
   return months[month - 1] || "";
 };
 
+// Convert numeric strings to actual numbers for Excel compatibility
+const parseNumericValue = (value: string | null): string | number | null => {
+  if (value === null || value === undefined || value.trim() === '') {
+    return null;
+  }
+  
+  const trimmed = value.trim();
+  
+  // Check if it contains currency, percentage, or other non-numeric formatting
+  if (/[$%€£¥]/.test(trimmed) || /[a-zA-Z]/.test(trimmed)) {
+    return trimmed;
+  }
+  
+  // Remove commas and try to parse as number
+  const cleanedValue = trimmed.replace(/,/g, '');
+  const parsed = parseFloat(cleanedValue);
+  
+  // Return as number if it's a valid number, otherwise return original string
+  if (!isNaN(parsed) && isFinite(parsed) && cleanedValue === parsed.toString()) {
+    return parsed;
+  }
+  
+  // Handle cases like "1234.56" or "-500" that parseFloat handles correctly
+  if (!isNaN(parsed) && isFinite(parsed)) {
+    // Verify it was a clean numeric string (with optional commas)
+    if (/^-?[\d,]+\.?\d*$/.test(trimmed)) {
+      return parsed;
+    }
+  }
+  
+  return trimmed;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -169,12 +202,13 @@ serve(async (req) => {
         const record = pivotMap.get(key)!;
         // Clean the label to make it a valid column name
         const columnName = row.field_label.replace(/[^a-zA-Z0-9\s]/g, '').trim();
-        record[columnName] = row.field_value;
+        // Convert numeric values for Excel compatibility
+        record[columnName] = parseNumericValue(row.field_value);
       });
       
       responseData = Array.from(pivotMap.values());
     } else {
-      // Long format (default) - current behavior
+      // Long format (default) - convert numeric values
       responseData = kpiData?.map(row => ({
         year: row.year,
         month: row.month,
@@ -182,7 +216,7 @@ serve(async (req) => {
         category: row.category,
         field_name: row.field_name,
         field_label: row.field_label,
-        field_value: row.field_value,
+        field_value: parseNumericValue(row.field_value),
         ...(isAdmin && { 
           user_id: row.user_id,
           user_email: userEmails[row.user_id] || 'Unknown'
