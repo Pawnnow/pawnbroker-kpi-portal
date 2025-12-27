@@ -192,7 +192,7 @@ serve(async (req) => {
             month: row.month,
             month_name: getMonthName(row.month),
             ...(isAdmin && { 
-              user_id: row.user_id,
+              user_id: String(row.user_id),
               user_email: userEmails[row.user_id] || 'Unknown'
             })
           });
@@ -218,7 +218,7 @@ serve(async (req) => {
         field_label: row.field_label,
         field_value: parseNumericValue(row.field_value),
         ...(isAdmin && { 
-          user_id: row.user_id,
+          user_id: String(row.user_id),
           user_email: userEmails[row.user_id] || 'Unknown'
         })
       }));
