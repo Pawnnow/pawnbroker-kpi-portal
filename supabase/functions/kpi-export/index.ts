@@ -177,20 +177,20 @@ serve(async (req) => {
     let responseData;
     
     if (format === 'wide') {
-      // Pivot data to wide format: one row per user/year/month with KPI fields as columns
+      // Pivot data to wide format: one row per user/year/month with ALL KPI fields from all categories
       const pivotMap = new Map<string, Record<string, any>>();
       
       kpiData?.forEach(row => {
+        // Group by user/year/month only (not category) so all KPIs appear in one row
         const key = isAdmin 
-          ? `${row.user_id}-${row.year}-${row.month}-${row.category}`
-          : `${row.year}-${row.month}-${row.category}`;
+          ? `${row.user_id}-${row.year}-${row.month}`
+          : `${row.year}-${row.month}`;
         
         if (!pivotMap.has(key)) {
           pivotMap.set(key, {
             year: row.year,
             month: row.month,
             month_name: getMonthName(row.month),
-            category: row.category,
             ...(isAdmin && { 
               user_id: row.user_id,
               user_email: userEmails[row.user_id] || 'Unknown'
