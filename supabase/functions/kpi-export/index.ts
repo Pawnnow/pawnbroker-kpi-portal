@@ -44,6 +44,33 @@ const parseNumericValue = (value: string | null): string | number | null => {
   return trimmed;
 };
 
+// Define ALL expected KPI columns to ensure consistent export structure
+// These match the field_labels in the KPI upload form (with $ → Dollar, # → Num)
+const ALL_KPI_COLUMNS = [
+  // Pawn KPIs
+  "Ending Pawn Balance", "Num Pawns at End of Month", "Dollar Pawns Written", 
+  "Num Pawns Written", "Dollar Pawns Redeemed", "Num Pawns Redeemed",
+  "Dollar Pawns Forfeited", "Num Pawns Forfeited", "Dollar Pickups",
+  "Num Pickups", "Dollar Extensions", "Dollar Renewals",
+  // Retail Sales KPIs
+  "Total Retail Sales", "Dollar Margin",
+  // Purchases KPIs
+  "General Mdse Purchases", "Scrap Purchases",
+  // Marketing KPIs
+  "Text Marketing", "Social Media Ads FB Google", "Print Marketing",
+  "Radio Marketing", "TV Marketing", "Website", "Consulting",
+  "Total Marketing Spent",
+  // Aged Inventory KPIs
+  "Dollar 0 to 90 Days", "Num 0 to 90 Days", "Dollar 91 to 180 Days",
+  "Num 91 to 180 Days", "Dollar 181 to 270 Days", "Num 181 to 270 Days",
+  "Dollar 271 to 365 Days", "Num 271 to 365 Days", "Dollar 1 Year Plus",
+  "Num 1 Year Plus",
+  // Pawn Balance By Type KPIs
+  "Dollar General Mdse", "Num General Mdse", "Dollar Jewelry",
+  "Num Jewelry", "Dollar Firearms", "Num Firearms",
+  "Dollar Tools", "Num Tools", "Dollar Electronics", "Num Electronics"
+];
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -187,7 +214,8 @@ serve(async (req) => {
           : `${row.year}-${row.month}`;
         
         if (!pivotMap.has(key)) {
-          pivotMap.set(key, {
+          // Initialize base row with metadata
+          const baseRow: Record<string, any> = {
             year: row.year,
             month: row.month,
             month_name: getMonthName(row.month),
@@ -195,7 +223,14 @@ serve(async (req) => {
               user_id: String(row.user_id),
               user_email: userEmails[row.user_id] || 'Unknown'
             })
+          };
+          
+          // Pre-populate ALL KPI columns with null to ensure consistent structure
+          ALL_KPI_COLUMNS.forEach(col => {
+            baseRow[col] = null;
           });
+          
+          pivotMap.set(key, baseRow);
         }
         
         // Add field value as a column using field_label as column name
