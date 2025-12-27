@@ -101,7 +101,7 @@ in
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Wide format gives you one row per user/month with each KPI as a column - ready for pivot tables.
+                  Wide format gives you one row per month with ALL KPI fields from all categories as columns.
                 </p>
               </div>
             )}
@@ -184,7 +184,7 @@ in
                   <li>Click "Close & Load" - your data is ready!</li>
                 </ol>
                 <p className="text-xs text-muted-foreground mt-2 italic">
-                  The wide format gives you clean data with each KPI as its own column - perfect for pivot tables.
+                  Wide format consolidates all categories into one row per month - includes all KPIs from pawn, marketing, retail, expenses, and aged inventory.
                 </p>
               </div>
 
@@ -211,7 +211,7 @@ in
               <div className="space-y-2">
                 <h4 className="font-medium">URL Parameters</h4>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li><code className="bg-muted px-1 rounded">format=wide</code> - Pivot data (one row per user/month, KPIs as columns)</li>
+                  <li><code className="bg-muted px-1 rounded">format=wide</code> - Pivot data (one row per month with ALL KPIs from all categories)</li>
                   <li><code className="bg-muted px-1 rounded">format=long</code> - Raw data (one row per field, default)</li>
                   <li><code className="bg-muted px-1 rounded">year=2025</code> - Filter by year</li>
                   <li><code className="bg-muted px-1 rounded">month=6</code> - Filter by month</li>
