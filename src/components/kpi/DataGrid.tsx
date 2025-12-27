@@ -50,7 +50,9 @@ const DataGrid = ({ title, columns, rows, values, onChange }: DataGridProps) => 
                   {row}
                 </td>
                 {columns.map((col) => {
-                  const key = `${row}_${col}`;
+                  // Sanitize column name to avoid collisions (e.g., "Total #" vs "Total $")
+                  const sanitizedCol = col.replace('#', 'Num').replace('$', 'Dollar');
+                  const key = `${row}_${sanitizedCol}`;
                   const hasError = !!errors[key];
                   return (
                     <td key={col} className="border border-border p-2">
