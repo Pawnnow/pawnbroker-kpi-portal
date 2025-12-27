@@ -201,7 +201,12 @@ serve(async (req) => {
         // Add field value as a column using field_label as column name
         const record = pivotMap.get(key)!;
         // Clean the label to make it a valid column name
-        const columnName = row.field_label.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+        // Replace $ and # with text equivalents first to avoid collisions (e.g., "$ Pawns Written" vs "# Pawns Written")
+        const columnName = row.field_label
+          .replace(/\$/g, 'Dollar ')
+          .replace(/#/g, 'Num ')
+          .replace(/[^a-zA-Z0-9\s]/g, '')
+          .trim();
         // Convert numeric values for Excel compatibility
         record[columnName] = parseNumericValue(row.field_value);
       });
