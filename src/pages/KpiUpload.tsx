@@ -81,7 +81,7 @@ const MARKETING_KPIS = [
   { name: "unique_customers_365d", label: "Unique Customers (Past 365 Days)" },
 ];
 
-const AGED_INVENTORY_COLUMNS = ["Total #", "Total $", "Jewelry", "Tools", "Musical", "Games", "Firearms", "Coins Bullion", "Other"];
+const AGED_INVENTORY_COLUMNS = ["Total #", "Total $", "Jewelry", "Electronics", "Tools", "Musical", "Games", "Firearms", "Coins Bullion", "Other"];
 const AGED_INVENTORY_ROWS = ["0–90 Days", "91–120 Days", "121–180 Days", "181–210 Days", "211–365 Days", "365+ Days"];
 
 const PAWN_BALANCE_COLUMNS = ["$", "QTY"];
