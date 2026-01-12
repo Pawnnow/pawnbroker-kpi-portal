@@ -25,6 +25,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { LogOut, ArrowLeft, Users, Database, Calendar, Search, Shield } from "lucide-react";
 import ExcelIntegration from "@/components/kpi/ExcelIntegration";
 import CreateUserForm from "@/components/admin/CreateUserForm";
+import UserList from "@/components/admin/UserList";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -171,8 +172,11 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Create User Form */}
-        <CreateUserForm />
+        {/* User Management Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CreateUserForm />
+          <UserList />
+        </div>
 
         {/* Excel Integration for Admin */}
         <ExcelIntegration />
