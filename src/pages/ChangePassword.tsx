@@ -42,38 +42,48 @@ const ChangePassword = () => {
     setIsLoading(true);
 
     try {
-      // 1. Update the password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
+      // 1. Get current user BEFORE password change (session is still valid)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
 
-      if (updateError) throw updateError;
-
-      // 2. Refresh session to ensure token is valid after password change
-      const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) throw refreshError;
-      if (!session) throw new Error("Session expired. Please log in again.");
-
-      // 3. Update profile with the refreshed session
+      // 2. Update the profile FIRST while access token is still valid
       const { data, error: profileError } = await supabase
         .from("profiles")
         .update({ must_change_password: false })
-        .eq("id", session.user.id)
+        .eq("id", user.id)
         .select();
 
       if (profileError) throw profileError;
 
-      // 4. Check if update actually worked (catch silent RLS failures)
+      // 3. Check if update actually worked (catch silent RLS failures)
       if (!data || data.length === 0) {
-        throw new Error("Failed to update profile. Please try logging in again.");
+        throw new Error("Failed to update profile. Please try again.");
       }
+
+      // 4. Now update the password (this may invalidate refresh token)
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        // Rollback profile change if password update fails
+        await supabase
+          .from("profiles")
+          .update({ must_change_password: true })
+          .eq("id", user.id);
+        throw updateError;
+      }
+
+      // 5. Sign out to clear potentially invalid tokens
+      await supabase.auth.signOut();
 
       toast({
         title: "Password changed successfully",
-        description: "You can now access the application.",
+        description: "Please log in with your new password.",
       });
 
-      navigate("/dashboard");
+      // 6. Redirect to login page
+      navigate("/auth");
     } catch (error: any) {
       toast({
         title: "Error changing password",
