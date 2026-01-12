@@ -23,8 +23,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminKpiData } from "@/hooks/useAdminKpiData";
 import { useUserRole } from "@/hooks/useUserRole";
 import { LogOut, ArrowLeft, Users, Database, Calendar, Search, Shield } from "lucide-react";
-import { format } from "date-fns";
 import ExcelIntegration from "@/components/kpi/ExcelIntegration";
+import CreateUserForm from "@/components/admin/CreateUserForm";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -170,6 +170,9 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Create User Form */}
+        <CreateUserForm />
 
         {/* Excel Integration for Admin */}
         <ExcelIntegration />
