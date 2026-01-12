@@ -42,24 +42,31 @@ const ChangePassword = () => {
     setIsLoading(true);
 
     try {
-      // Update the password
+      // 1. Update the password
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
       if (updateError) throw updateError;
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
+      // 2. Refresh session to ensure token is valid after password change
+      const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw refreshError;
+      if (!session) throw new Error("Session expired. Please log in again.");
 
-      // Update the profile to set must_change_password to false
-      const { error: profileError } = await supabase
+      // 3. Update profile with the refreshed session
+      const { data, error: profileError } = await supabase
         .from("profiles")
         .update({ must_change_password: false })
-        .eq("id", user.id);
+        .eq("id", session.user.id)
+        .select();
 
       if (profileError) throw profileError;
+
+      // 4. Check if update actually worked (catch silent RLS failures)
+      if (!data || data.length === 0) {
+        throw new Error("Failed to update profile. Please try logging in again.");
+      }
 
       toast({
         title: "Password changed successfully",
