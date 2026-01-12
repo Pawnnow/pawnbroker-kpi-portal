@@ -42,31 +42,50 @@ const ChangePassword = () => {
     setIsLoading(true);
 
     try {
+      console.log("[ChangePassword] Starting password change flow...");
+      
       // 1. Get current user BEFORE password change (session is still valid)
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      console.log("[ChangePassword] getUser result:", { userId: user?.id, error: userError?.message });
+      
+      if (userError || !user) {
+        throw new Error(userError?.message || "No user found. Please sign in again.");
+      }
 
       // 2. Update the profile FIRST while access token is still valid
+      console.log("[ChangePassword] Updating profile must_change_password to false...");
       const { data, error: profileError } = await supabase
         .from("profiles")
         .update({ must_change_password: false })
         .eq("id", user.id)
         .select();
 
-      if (profileError) throw profileError;
+      console.log("[ChangePassword] Profile update result:", { 
+        rowsAffected: data?.length, 
+        error: profileError?.message 
+      });
+
+      if (profileError) {
+        throw new Error(`Profile update failed: ${profileError.message}`);
+      }
 
       // 3. Check if update actually worked (catch silent RLS failures)
       if (!data || data.length === 0) {
-        throw new Error("Failed to update profile. Please try again.");
+        console.error("[ChangePassword] Profile update returned 0 rows - possible RLS issue");
+        throw new Error("Failed to update profile. You may need to sign in again.");
       }
 
       // 4. Now update the password (this may invalidate refresh token)
+      console.log("[ChangePassword] Updating password...");
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
+      console.log("[ChangePassword] Password update result:", { error: updateError?.message });
+
       if (updateError) {
         // Rollback profile change if password update fails
+        console.log("[ChangePassword] Rolling back profile change...");
         await supabase
           .from("profiles")
           .update({ must_change_password: true })
@@ -74,8 +93,16 @@ const ChangePassword = () => {
         throw updateError;
       }
 
-      // 5. Sign out to clear potentially invalid tokens
+      // 5. Clear all auth state to prevent stale tokens
+      console.log("[ChangePassword] Signing out and clearing auth state...");
       await supabase.auth.signOut();
+      
+      // Clear any localStorage auth data to ensure clean state
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
 
       toast({
         title: "Password changed successfully",
@@ -83,8 +110,10 @@ const ChangePassword = () => {
       });
 
       // 6. Redirect to login page
+      console.log("[ChangePassword] Redirecting to /auth...");
       navigate("/auth");
     } catch (error: any) {
+      console.error("[ChangePassword] Error:", error);
       toast({
         title: "Error changing password",
         description: error.message,
