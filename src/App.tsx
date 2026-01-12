@@ -7,6 +7,7 @@ import Auth from "./pages/Auth";
 import KpiUpload from "./pages/KpiUpload";
 import KpiDashboard from "./pages/KpiDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import ChangePassword from "./pages/ChangePassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
@@ -42,6 +43,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute skipPasswordCheck>
+                <ChangePassword />
               </ProtectedRoute>
             }
           />
