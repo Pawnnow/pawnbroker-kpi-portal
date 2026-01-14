@@ -142,18 +142,31 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
 
   const handleResetSession = async () => {
     console.log("[ProtectedRoute] User requested session reset");
+
+    // Clear any stale auth data first (this can unblock signOut when storage is corrupted)
     try {
-      await supabase.auth.signOut();
-      // Clear any stale auth data from localStorage
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('sb-')) {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("sb-")) {
           localStorage.removeItem(key);
         }
       });
+      sessionStorage.clear();
     } catch (error) {
-      console.error("[ProtectedRoute] Error during session reset:", error);
+      console.error("[ProtectedRoute] Error clearing storage during session reset:", error);
     }
-    navigate("/auth");
+
+    // Best-effort signOut (don't block UI/navigation if the network is hung)
+    try {
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+      ]);
+    } catch (error) {
+      console.error("[ProtectedRoute] Error during signOut in session reset:", error);
+    }
+
+    // Force a hard navigation to guarantee we leave this stuck state
+    window.location.assign("/auth");
   };
 
   // Timed out - show recovery UI
