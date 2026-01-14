@@ -8,6 +8,7 @@ import KpiUpload from "./pages/KpiUpload";
 import KpiDashboard from "./pages/KpiDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ChangePassword from "./pages/ChangePassword";
+import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
@@ -22,6 +23,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/dashboard"
             element={

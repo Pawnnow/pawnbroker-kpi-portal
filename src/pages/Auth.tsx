@@ -39,6 +39,7 @@ const Auth = () => {
               },
             }}
             providers={[]}
+            redirectTo={`${window.location.origin}/reset-password`}
           />
         </div>
       </div>
