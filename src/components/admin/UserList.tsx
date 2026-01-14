@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Mail, User, Calendar } from "lucide-react";
+import { Users, Mail, User, Calendar, KeyRound } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserProfile {
   id: string;
@@ -23,43 +25,73 @@ const UserList = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [clearingUserId, setClearingUserId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const fetchUsers = async () => {
+    try {
+      // Fetch all profiles (admin can see all)
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      // Fetch all admin roles
+      const { data: adminRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      if (rolesError) throw rolesError;
+
+      const adminUserIds = new Set(adminRoles?.map(r => r.user_id) || []);
+
+      const usersWithRoles: UserWithRole[] = (profiles || []).map(profile => ({
+        ...profile,
+        isAdmin: adminUserIds.has(profile.id),
+      }));
+
+      setUsers(usersWithRoles);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        // Fetch all profiles (admin can see all)
-        const { data: profiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (profilesError) throw profilesError;
-
-        // Fetch all admin roles
-        const { data: adminRoles, error: rolesError } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin");
-
-        if (rolesError) throw rolesError;
-
-        const adminUserIds = new Set(adminRoles?.map(r => r.user_id) || []);
-
-        const usersWithRoles: UserWithRole[] = (profiles || []).map(profile => ({
-          ...profile,
-          isAdmin: adminUserIds.has(profile.id),
-        }));
-
-        setUsers(usersWithRoles);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchUsers();
   }, []);
+
+  const handleClearPasswordFlag = async (userId: string, userName: string | null) => {
+    setClearingUserId(userId);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ must_change_password: false })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Password flag cleared",
+        description: `${userName || "User"} can now access the dashboard without changing password.`,
+      });
+
+      // Refresh the user list
+      await fetchUsers();
+    } catch (err: any) {
+      toast({
+        title: "Error clearing password flag",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setClearingUserId(null);
+    }
+  };
 
   return (
     <Card>
@@ -90,6 +122,7 @@ const UserList = () => {
                     <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -134,6 +167,19 @@ const UserList = () => {
                             ? format(new Date(user.created_at), "MMM d, yyyy")
                             : "—"}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {user.must_change_password && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleClearPasswordFlag(user.id, user.user_name || user.full_name)}
+                            disabled={clearingUserId === user.id}
+                          >
+                            <KeyRound className="w-3.5 h-3.5 mr-1.5" />
+                            {clearingUserId === user.id ? "Clearing..." : "Clear Password Flag"}
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
