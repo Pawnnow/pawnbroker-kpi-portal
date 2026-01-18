@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -19,10 +20,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminKpiData } from "@/hooks/useAdminKpiData";
 import { useUserRole } from "@/hooks/useUserRole";
-import { LogOut, ArrowLeft, Users, Database, Calendar, Search, Shield } from "lucide-react";
+import { LogOut, ArrowLeft, Users, Database, Calendar, Search, Shield, Trash2, AlertTriangle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import ExcelIntegration from "@/components/kpi/ExcelIntegration";
 import CreateUserForm from "@/components/admin/CreateUserForm";
 import UserList from "@/components/admin/UserList";
@@ -31,14 +44,20 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { data: roleData, isLoading: roleLoading } = useUserRole();
-  const { data: kpiData, isLoading: dataLoading, error } = useAdminKpiData();
+  const { data: kpiData, isLoading: dataLoading, error, refetch } = useAdminKpiData();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [yearFilter, setYearFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [userFilter, setUserFilter] = useState<string>("all");
+
+  // Selection state for delete functionality
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [clearAllConfirmText, setClearAllConfirmText] = useState("");
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -87,6 +106,132 @@ const AdminDashboard = () => {
     };
   }, [kpiData]);
 
+  // Selection handlers
+  const toggleEntrySelection = (entryId: string) => {
+    setSelectedEntries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(entryId)) {
+        newSet.delete(entryId);
+      } else {
+        newSet.add(entryId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleAllVisible = () => {
+    const visibleIds = filteredData.slice(0, 100).map(e => e.id);
+    const allSelected = visibleIds.every(id => selectedEntries.has(id));
+    
+    if (allSelected) {
+      setSelectedEntries(prev => {
+        const newSet = new Set(prev);
+        visibleIds.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+    } else {
+      setSelectedEntries(prev => {
+        const newSet = new Set(prev);
+        visibleIds.forEach(id => newSet.add(id));
+        return newSet;
+      });
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedEntries.size === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-data`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: "delete_selected",
+            entry_ids: Array.from(selectedEntries),
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete entries");
+      }
+
+      toast({
+        title: "Entries deleted",
+        description: `Successfully deleted ${result.deleted_count} entries.`,
+      });
+
+      setSelectedEntries(new Set());
+      refetch();
+    } catch (error: any) {
+      toast({
+        title: "Error deleting entries",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (clearAllConfirmText !== "DELETE ALL") return;
+    
+    setIsDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-data`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: "clear_all",
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to clear database");
+      }
+
+      toast({
+        title: "Database cleared",
+        description: `Successfully deleted ${result.deleted_count} entries.`,
+      });
+
+      setSelectedEntries(new Set());
+      setClearAllConfirmText("");
+      refetch();
+    } catch (error: any) {
+      toast({
+        title: "Error clearing database",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (roleLoading) {
     return (
       <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
@@ -118,6 +263,9 @@ const AdminDashboard = () => {
       </div>
     );
   }
+
+  const visibleData = filteredData.slice(0, 100);
+  const allVisibleSelected = visibleData.length > 0 && visibleData.every(e => selectedEntries.has(e.id));
 
   return (
     <div className="min-h-screen bg-secondary/30">
@@ -180,6 +328,87 @@ const AdminDashboard = () => {
 
         {/* Excel Integration for Admin */}
         <ExcelIntegration />
+
+        {/* Data Management Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              Data Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-4">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  disabled={selectedEntries.size === 0 || isDeleting}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({selectedEntries.size})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Selected Entries?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete {selectedEntries.size} selected entries?
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteSelected} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={isDeleting || summaryStats.totalEntries === 0}>
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Clear All Data
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="w-5 h-5" />
+                    Clear Entire Database?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-4">
+                    <p>
+                      <strong>WARNING:</strong> This will permanently delete <strong>ALL</strong> KPI data 
+                      for <strong>ALL</strong> users ({summaryStats.totalEntries.toLocaleString()} entries).
+                    </p>
+                    <p>This action cannot be undone.</p>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmDelete">Type "DELETE ALL" to confirm:</Label>
+                      <Input
+                        id="confirmDelete"
+                        value={clearAllConfirmText}
+                        onChange={(e) => setClearAllConfirmText(e.target.value)}
+                        placeholder="DELETE ALL"
+                      />
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setClearAllConfirmText("")}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleClearAll}
+                    disabled={clearAllConfirmText !== "DELETE ALL"}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Clear All Data
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
 
         {/* Filters */}
         <Card>
@@ -271,6 +500,13 @@ const AdminDashboard = () => {
                   <Table>
                     <TableHeader className="sticky top-0 bg-card">
                       <TableRow>
+                        <TableHead className="w-[50px]">
+                          <Checkbox
+                            checked={allVisibleSelected}
+                            onCheckedChange={toggleAllVisible}
+                            aria-label="Select all visible"
+                          />
+                        </TableHead>
                         <TableHead>User</TableHead>
                         <TableHead>Period</TableHead>
                         <TableHead>Category</TableHead>
@@ -279,15 +515,22 @@ const AdminDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredData.length === 0 ? (
+                      {visibleData.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                             No data found
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredData.slice(0, 100).map((entry) => (
-                          <TableRow key={entry.id}>
+                        visibleData.map((entry) => (
+                          <TableRow key={entry.id} className={selectedEntries.has(entry.id) ? "bg-muted/50" : ""}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedEntries.has(entry.id)}
+                                onCheckedChange={() => toggleEntrySelection(entry.id)}
+                                aria-label={`Select entry ${entry.id}`}
+                              />
+                            </TableCell>
                             <TableCell className="font-medium">{entry.user_email}</TableCell>
                             <TableCell>{MONTH_NAMES[entry.month - 1]} {entry.year}</TableCell>
                             <TableCell className="capitalize">{entry.category}</TableCell>
