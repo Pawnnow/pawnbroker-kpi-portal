@@ -186,18 +186,22 @@ serve(async (req) => {
       );
     }
 
-    // If admin, fetch user emails for identification
-    let userEmails: Record<string, string> = {};
+    // If admin, fetch user profiles for identification (email, user_name, group)
+    let userProfiles: Record<string, { email: string; user_name: string | null; group: number | null }> = {};
     if (isAdmin && kpiData && kpiData.length > 0) {
       const userIds = [...new Set(kpiData.map(d => d.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, email')
+        .select('id, email, user_name, group')
         .in('id', userIds);
       
       if (profiles) {
         profiles.forEach(p => {
-          userEmails[p.id] = p.email || 'Unknown';
+          userProfiles[p.id] = {
+            email: p.email || 'Unknown',
+            user_name: p.user_name || null,
+            group: p.group ?? null
+          };
         });
       }
     }
@@ -216,6 +220,7 @@ serve(async (req) => {
           : `${row.year}-${row.month}`;
         
         if (!pivotMap.has(key)) {
+          const profile = userProfiles[row.user_id];
           // Initialize base row with metadata
           const baseRow: Record<string, any> = {
             year: row.year,
@@ -223,7 +228,9 @@ serve(async (req) => {
             month_name: getMonthName(row.month),
             ...(isAdmin && { 
               user_id: String(row.user_id),
-              user_email: userEmails[row.user_id] || 'Unknown'
+              user_name: profile?.user_name || null,
+              user_email: profile?.email || 'Unknown',
+              group: profile?.group ?? null
             })
           };
           
@@ -251,19 +258,24 @@ serve(async (req) => {
       responseData = Array.from(pivotMap.values());
     } else {
       // Long format (default) - convert numeric values
-      responseData = kpiData?.map(row => ({
-        year: row.year,
-        month: row.month,
-        month_name: getMonthName(row.month),
-        category: row.category,
-        field_name: row.field_name,
-        field_label: row.field_label,
-        field_value: parseNumericValue(row.field_value),
-        ...(isAdmin && { 
-          user_id: String(row.user_id),
-          user_email: userEmails[row.user_id] || 'Unknown'
-        })
-      }));
+      responseData = kpiData?.map(row => {
+        const profile = userProfiles[row.user_id];
+        return {
+          year: row.year,
+          month: row.month,
+          month_name: getMonthName(row.month),
+          category: row.category,
+          field_name: row.field_name,
+          field_label: row.field_label,
+          field_value: parseNumericValue(row.field_value),
+          ...(isAdmin && { 
+            user_id: String(row.user_id),
+            user_name: profile?.user_name || null,
+            user_email: profile?.email || 'Unknown',
+            group: profile?.group ?? null
+          })
+        };
+      });
     }
 
     const response = {
