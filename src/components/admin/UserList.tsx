@@ -4,9 +4,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Mail, User, Calendar, KeyRound, Snowflake, Play } from "lucide-react";
+import { Users, Mail, User, Calendar, KeyRound, Snowflake, Play, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import EditUserDialog from "./EditUserDialog";
 
 interface UserProfile {
   id: string;
@@ -29,6 +30,8 @@ const UserList = () => {
   const [error, setError] = useState<string | null>(null);
   const [clearingUserId, setClearingUserId] = useState<string | null>(null);
   const [freezingUserId, setFreezingUserId] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
@@ -66,6 +69,10 @@ const UserList = () => {
 
   useEffect(() => {
     fetchUsers();
+    // Get current user ID
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id || null);
+    });
   }, []);
 
   const handleClearPasswordFlag = async (userId: string, userName: string | null) => {
@@ -212,6 +219,14 @@ const UserList = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2 flex-wrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingUser(user)}
+                          >
+                            <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                            Edit
+                          </Button>
                           {user.must_change_password && (
                             <Button
                               variant="outline"
@@ -252,6 +267,14 @@ const UserList = () => {
             </div>
           </div>
         )}
+
+        <EditUserDialog
+          open={editingUser !== null}
+          onOpenChange={(open) => !open && setEditingUser(null)}
+          user={editingUser}
+          currentUserId={currentUserId}
+          onSuccess={fetchUsers}
+        />
       </CardContent>
     </Card>
   );
