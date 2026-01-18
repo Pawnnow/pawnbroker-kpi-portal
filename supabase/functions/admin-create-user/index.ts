@@ -53,12 +53,21 @@ Deno.serve(async (req) => {
     }
 
     // Parse the request body
-    const { email, password, user_name, full_name } = await req.json();
+    const { email, password, user_name, full_name, group } = await req.json();
 
     // Validate required fields
     if (!email || !password || !user_name) {
       return new Response(
         JSON.stringify({ error: "Email, password, and user_name are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate group value if provided
+    const groupValue = typeof group === 'number' ? group : 0;
+    if (groupValue < 0 || groupValue > 5) {
+      return new Response(
+        JSON.stringify({ error: "Group must be between 0 and 5" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -123,13 +132,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update the profile with user_name and must_change_password flag
+    // Update the profile with user_name, group, and must_change_password flag
     const { error: profileError } = await adminClient
       .from("profiles")
       .update({
         user_name,
         full_name: full_name || "",
         must_change_password: true,
+        group: groupValue,
       })
       .eq("id", authData.user.id);
 
@@ -150,6 +160,7 @@ Deno.serve(async (req) => {
           email: authData.user.email,
           user_name,
           full_name: full_name || "",
+          group: groupValue,
         },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

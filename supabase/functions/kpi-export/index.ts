@@ -68,7 +68,9 @@ const ALL_KPI_COLUMNS = [
   // Pawn Balance By Type KPIs
   "Dollar General Mdse", "Num General Mdse", "Dollar Jewelry",
   "Num Jewelry", "Dollar Firearms", "Num Firearms",
-  "Dollar Tools", "Num Tools", "Dollar Electronics", "Num Electronics"
+  "Dollar Tools", "Num Tools", "Dollar Electronics", "Num Electronics",
+  // Merchandise Inventory KPIs
+  "Merch Inventory", "Layaway Inventory", "Scrap Inventory"
 ];
 
 serve(async (req) => {

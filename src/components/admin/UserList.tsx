@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Mail, User, Calendar, KeyRound } from "lucide-react";
+import { Users, Mail, User, Calendar, KeyRound, Snowflake, Play } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,6 +14,8 @@ interface UserProfile {
   user_name: string | null;
   full_name: string | null;
   must_change_password: boolean | null;
+  is_frozen: boolean | null;
+  group: number | null;
   created_at: string | null;
 }
 
@@ -26,6 +28,7 @@ const UserList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clearingUserId, setClearingUserId] = useState<string | null>(null);
+  const [freezingUserId, setFreezingUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
@@ -93,6 +96,36 @@ const UserList = () => {
     }
   };
 
+  const handleToggleFreeze = async (userId: string, userName: string | null, currentlyFrozen: boolean) => {
+    setFreezingUserId(userId);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_frozen: !currentlyFrozen })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: currentlyFrozen ? "Account unfrozen" : "Account frozen",
+        description: currentlyFrozen 
+          ? `${userName || "User"} can now access their account.`
+          : `${userName || "User"}'s account has been frozen.`,
+      });
+
+      // Refresh the user list
+      await fetchUsers();
+    } catch (err: any) {
+      toast({
+        title: "Error updating account status",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setFreezingUserId(null);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -119,6 +152,7 @@ const UserList = () => {
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Username</TableHead>
+                    <TableHead>Group</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
@@ -127,7 +161,7 @@ const UserList = () => {
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow key={user.id} className={user.is_frozen ? "bg-destructive/5" : ""}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-muted-foreground" />
@@ -142,6 +176,11 @@ const UserList = () => {
                         </code>
                       </TableCell>
                       <TableCell>
+                        <Badge variant="outline">
+                          {user.group ?? 0}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-2">
                           <Mail className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm">{user.email || "—"}</span>
@@ -149,13 +188,16 @@ const UserList = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1.5 flex-wrap">
+                          {user.is_frozen && (
+                            <Badge variant="destructive">Frozen</Badge>
+                          )}
                           {user.isAdmin && (
                             <Badge variant="default">Admin</Badge>
                           )}
                           {user.must_change_password && (
                             <Badge variant="secondary">Pending Password</Badge>
                           )}
-                          {!user.isAdmin && !user.must_change_password && (
+                          {!user.isAdmin && !user.must_change_password && !user.is_frozen && (
                             <Badge variant="outline">User</Badge>
                           )}
                         </div>
@@ -169,17 +211,39 @@ const UserList = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {user.must_change_password && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleClearPasswordFlag(user.id, user.user_name || user.full_name)}
-                            disabled={clearingUserId === user.id}
-                          >
-                            <KeyRound className="w-3.5 h-3.5 mr-1.5" />
-                            {clearingUserId === user.id ? "Clearing..." : "Clear Password Flag"}
-                          </Button>
-                        )}
+                        <div className="flex gap-2 flex-wrap">
+                          {user.must_change_password && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleClearPasswordFlag(user.id, user.user_name || user.full_name)}
+                              disabled={clearingUserId === user.id}
+                            >
+                              <KeyRound className="w-3.5 h-3.5 mr-1.5" />
+                              {clearingUserId === user.id ? "Clearing..." : "Clear PW"}
+                            </Button>
+                          )}
+                          {!user.isAdmin && (
+                            <Button
+                              variant={user.is_frozen ? "default" : "destructive"}
+                              size="sm"
+                              onClick={() => handleToggleFreeze(user.id, user.user_name || user.full_name, !!user.is_frozen)}
+                              disabled={freezingUserId === user.id}
+                            >
+                              {user.is_frozen ? (
+                                <>
+                                  <Play className="w-3.5 h-3.5 mr-1.5" />
+                                  {freezingUserId === user.id ? "..." : "Unfreeze"}
+                                </>
+                              ) : (
+                                <>
+                                  <Snowflake className="w-3.5 h-3.5 mr-1.5" />
+                                  {freezingUserId === user.id ? "..." : "Freeze"}
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

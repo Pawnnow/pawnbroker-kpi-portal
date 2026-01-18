@@ -96,7 +96,9 @@ export type Database = {
           created_at: string | null
           email: string | null
           full_name: string | null
+          group: number | null
           id: string
+          is_frozen: boolean | null
           must_change_password: boolean | null
           updated_at: string | null
           user_name: string | null
@@ -105,7 +107,9 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
+          group?: number | null
           id: string
+          is_frozen?: boolean | null
           must_change_password?: boolean | null
           updated_at?: string | null
           user_name?: string | null
@@ -114,7 +118,9 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           full_name?: string | null
+          group?: number | null
           id?: string
+          is_frozen?: boolean | null
           must_change_password?: boolean | null
           updated_at?: string | null
           user_name?: string | null

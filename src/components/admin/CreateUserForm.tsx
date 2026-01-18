@@ -3,6 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Eye, EyeOff, RefreshCw, Copy, Check } from "lucide-react";
@@ -13,9 +20,10 @@ const CreateUserForm = () => {
   const [userName, setUserName] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
+  const [group, setGroup] = useState<number>(0);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [createdUser, setCreatedUser] = useState<{ email: string; password: string; user_name: string } | null>(null);
+  const [createdUser, setCreatedUser] = useState<{ email: string; password: string; user_name: string; group: number } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const generatePassword = () => {
@@ -30,7 +38,7 @@ const CreateUserForm = () => {
 
   const copyCredentials = () => {
     if (!createdUser) return;
-    const text = `Email: ${createdUser.email}\nUsername: ${createdUser.user_name}\nTemporary Password: ${createdUser.password}\n\nPlease log in and change your password immediately.`;
+    const text = `Email: ${createdUser.email}\nUsername: ${createdUser.user_name}\nGroup: ${createdUser.group}\nTemporary Password: ${createdUser.password}\n\nPlease log in and change your password immediately.`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -62,6 +70,7 @@ const CreateUserForm = () => {
             password,
             user_name: userName,
             full_name: fullName,
+            group,
           }),
         }
       );
@@ -72,10 +81,10 @@ const CreateUserForm = () => {
         throw new Error(result.error || "Failed to create user");
       }
 
-      setCreatedUser({ email, password, user_name: userName });
+      setCreatedUser({ email, password, user_name: userName, group });
       toast({
         title: "User created successfully",
-        description: `User ${userName} has been created. Share the credentials below.`,
+        description: `User ${userName} (Group ${group}) has been created. Share the credentials below.`,
       });
 
       // Reset form except for the success message
@@ -83,6 +92,7 @@ const CreateUserForm = () => {
       setUserName("");
       setFullName("");
       setPassword("");
+      setGroup(0);
     } catch (error: any) {
       toast({
         title: "Error creating user",
@@ -143,6 +153,22 @@ const CreateUserForm = () => {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="John Smith"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="group">Group *</Label>
+              <Select value={group.toString()} onValueChange={(val) => setGroup(parseInt(val))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[0, 1, 2, 3, 4, 5].map((g) => (
+                    <SelectItem key={g} value={g.toString()}>
+                      Group {g}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -217,6 +243,7 @@ const CreateUserForm = () => {
             <div className="text-sm space-y-1 text-green-700 dark:text-green-300">
               <p><strong>Email:</strong> {createdUser.email}</p>
               <p><strong>Username:</strong> {createdUser.user_name}</p>
+              <p><strong>Group:</strong> {createdUser.group}</p>
               <p><strong>Temporary Password:</strong> {createdUser.password}</p>
             </div>
             <p className="text-xs text-green-600 dark:text-green-400">

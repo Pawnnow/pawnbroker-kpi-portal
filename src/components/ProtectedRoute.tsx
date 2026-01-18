@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import AccountFrozenScreen from "@/components/AccountFrozenScreen";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,10 +15,12 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
   const [authState, setAuthState] = useState<{
     isAuthenticated: boolean | null;
     mustChangePassword: boolean | null;
+    isFrozen: boolean | null;
     timedOut: boolean;
   }>({
     isAuthenticated: null,
     mustChangePassword: null,
+    isFrozen: null,
     timedOut: false,
   });
   const location = useLocation();
@@ -51,26 +54,27 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
         if (sessionError) {
           console.error("[ProtectedRoute] Session error, signing out:", sessionError.message);
           await supabase.auth.signOut();
-          setAuthState({ isAuthenticated: false, mustChangePassword: null, timedOut: false });
+          setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false });
           return;
         }
         
         if (!session) {
           console.log("[ProtectedRoute] No session found");
-          setAuthState({ isAuthenticated: false, mustChangePassword: null, timedOut: false });
+          setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false });
           return;
         }
 
-        // Check if user must change password
+        // Check if user must change password or is frozen
         console.log("[ProtectedRoute] Fetching profile for user:", session.user.id);
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("must_change_password")
+          .select("must_change_password, is_frozen")
           .eq("id", session.user.id)
           .single();
 
         console.log("[ProtectedRoute] Profile result:", { 
-          mustChangePassword: profile?.must_change_password, 
+          mustChangePassword: profile?.must_change_password,
+          isFrozen: profile?.is_frozen,
           error: profileError?.message 
         });
 
@@ -80,6 +84,7 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
           setAuthState({
             isAuthenticated: true,
             mustChangePassword: false,
+            isFrozen: false,
             timedOut: false,
           });
           return;
@@ -88,13 +93,14 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
         setAuthState({
           isAuthenticated: true,
           mustChangePassword: profile?.must_change_password ?? false,
+          isFrozen: profile?.is_frozen ?? false,
           timedOut: false,
         });
       } catch (error) {
         console.error("[ProtectedRoute] Unexpected error during auth check:", error);
         // On any unexpected error, sign out and redirect to login
         await supabase.auth.signOut();
-        setAuthState({ isAuthenticated: false, mustChangePassword: null, timedOut: false });
+        setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false });
       }
     };
 
@@ -104,7 +110,7 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
       console.log("[ProtectedRoute] Auth state changed:", event);
       
       if (event === 'SIGNED_OUT' || !session) {
-        setAuthState({ isAuthenticated: false, mustChangePassword: null, timedOut: false });
+        setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false });
         return;
       }
 
@@ -112,13 +118,14 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
         try {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("must_change_password")
+            .select("must_change_password, is_frozen")
             .eq("id", session.user.id)
             .single();
 
           setAuthState({
             isAuthenticated: true,
             mustChangePassword: profile?.must_change_password ?? false,
+            isFrozen: profile?.is_frozen ?? false,
             timedOut: false,
           });
         } catch (error) {
@@ -126,6 +133,7 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
           setAuthState({
             isAuthenticated: true,
             mustChangePassword: false,
+            isFrozen: false,
             timedOut: false,
           });
         }
@@ -206,6 +214,11 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
   // Not authenticated
   if (!authState.isAuthenticated) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Account is frozen - show frozen screen
+  if (authState.isFrozen) {
+    return <AccountFrozenScreen />;
   }
 
   // Must change password and not on the change password page
