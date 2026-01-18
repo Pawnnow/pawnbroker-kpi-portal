@@ -1,15 +1,16 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import AccountFrozenScreen from "@/components/AccountFrozenScreen";
+import { useActivityTimeout } from "@/hooks/useActivityTimeout";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   skipPasswordCheck?: boolean;
 }
 
-const AUTH_TIMEOUT_MS = 5000; // 5 seconds timeout
+const AUTH_TIMEOUT_MS = 5000; // 5 seconds timeout for initial auth check
 
 const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteProps) => {
   const [authState, setAuthState] = useState<{
@@ -17,15 +18,31 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
     mustChangePassword: boolean | null;
     isFrozen: boolean | null;
     timedOut: boolean;
+    userId: string | null;
   }>({
     isAuthenticated: null,
     mustChangePassword: null,
     isFrozen: null,
     timedOut: false,
+    userId: null,
   });
   const location = useLocation();
   const navigate = useNavigate();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Activity-based session timeout (30 min for users, 180 min for admins)
+  useActivityTimeout({
+    isAuthenticated: authState.isAuthenticated === true,
+    userId: authState.userId,
+  });
+
+  // Helper to safely clear the auth timeout
+  const clearAuthTimeout = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     // Set up timeout to prevent infinite loading
@@ -54,13 +71,15 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
         if (sessionError) {
           console.error("[ProtectedRoute] Session error, signing out:", sessionError.message);
           await supabase.auth.signOut();
-          setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false });
+          clearAuthTimeout();
+          setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false, userId: null });
           return;
         }
         
         if (!session) {
           console.log("[ProtectedRoute] No session found");
-          setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false });
+          clearAuthTimeout();
+          setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false, userId: null });
           return;
         }
 
@@ -78,6 +97,9 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
           error: profileError?.message 
         });
 
+        // Clear timeout before setting definitive auth state
+        clearAuthTimeout();
+
         // If profile fetch fails, allow access but don't require password change
         if (profileError) {
           console.warn("[ProtectedRoute] Profile fetch failed, allowing access");
@@ -86,6 +108,7 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
             mustChangePassword: false,
             isFrozen: false,
             timedOut: false,
+            userId: session.user.id,
           });
           return;
         }
@@ -95,58 +118,66 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
           mustChangePassword: profile?.must_change_password ?? false,
           isFrozen: profile?.is_frozen ?? false,
           timedOut: false,
+          userId: session.user.id,
         });
       } catch (error) {
         console.error("[ProtectedRoute] Unexpected error during auth check:", error);
         // On any unexpected error, sign out and redirect to login
         await supabase.auth.signOut();
-        setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false });
+        clearAuthTimeout();
+        setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false, userId: null });
       }
     };
 
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("[ProtectedRoute] Auth state changed:", event);
       
+      // Clear timeout on any definitive auth state change
+      clearAuthTimeout();
+      
       if (event === 'SIGNED_OUT' || !session) {
-        setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false });
+        setAuthState({ isAuthenticated: false, mustChangePassword: null, isFrozen: null, timedOut: false, userId: null });
         return;
       }
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("must_change_password, is_frozen")
-            .eq("id", session.user.id)
-            .single();
+        // Defer profile fetch to avoid deadlock
+        setTimeout(async () => {
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("must_change_password, is_frozen")
+              .eq("id", session.user.id)
+              .single();
 
-          setAuthState({
-            isAuthenticated: true,
-            mustChangePassword: profile?.must_change_password ?? false,
-            isFrozen: profile?.is_frozen ?? false,
-            timedOut: false,
-          });
-        } catch (error) {
-          console.error("[ProtectedRoute] Error fetching profile on auth change:", error);
-          setAuthState({
-            isAuthenticated: true,
-            mustChangePassword: false,
-            isFrozen: false,
-            timedOut: false,
-          });
-        }
+            setAuthState({
+              isAuthenticated: true,
+              mustChangePassword: profile?.must_change_password ?? false,
+              isFrozen: profile?.is_frozen ?? false,
+              timedOut: false,
+              userId: session.user.id,
+            });
+          } catch (error) {
+            console.error("[ProtectedRoute] Error fetching profile on auth change:", error);
+            setAuthState({
+              isAuthenticated: true,
+              mustChangePassword: false,
+              isFrozen: false,
+              timedOut: false,
+              userId: session.user.id,
+            });
+          }
+        }, 0);
       }
     });
 
     return () => {
       subscription.unsubscribe();
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      clearAuthTimeout();
     };
-  }, []);
+  }, [clearAuthTimeout]);
 
   const handleResetSession = async () => {
     console.log("[ProtectedRoute] User requested session reset");
