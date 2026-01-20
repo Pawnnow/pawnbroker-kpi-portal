@@ -456,7 +456,12 @@ const KpiUpload = () => {
         return;
       }
 
-      const { error } = await supabase.from("kpi_entries").insert(entries);
+      const { error } = await supabase
+        .from("kpi_entries")
+        .upsert(entries, { 
+          onConflict: 'user_id,year,month,field_name',
+          ignoreDuplicates: false 
+        });
 
       if (error) throw error;
 
