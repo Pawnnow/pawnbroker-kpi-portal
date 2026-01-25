@@ -120,7 +120,7 @@ const KpiUpload = () => {
   const { data: roleData } = useUserRole();
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 10 }, (_, i) => currentYear + i);
+  const years = Array.from({ length: currentYear - 2024 + 10 }, (_, i) => 2024 + i);
 
   // Fetch available months when export dialog opens
   useEffect(() => {
