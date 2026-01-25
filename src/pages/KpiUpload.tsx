@@ -62,6 +62,7 @@ const MERCHANDISE_KPIS = [
   { name: "scrap_sales", label: "Scrap Sales" },
   { name: "cogs_scrap", label: "COGS for Scrap" },
   { name: "merch_inventory", label: "Merch. Inventory" },
+  { name: "buy_inventory", label: "Buy Inventory" },
   { name: "layaway_inventory", label: "Layaway Inventory" },
   { name: "scrap_inventory", label: "Scrap Inventory" },
 ];
