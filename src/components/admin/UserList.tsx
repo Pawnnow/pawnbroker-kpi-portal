@@ -4,11 +4,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Mail, User, Calendar, KeyRound, Snowflake, Play, Pencil } from "lucide-react";
+import { Users, Mail, User, Calendar, KeyRound, Snowflake, Play, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import EditUserDialog from "./EditUserDialog";
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 interface UserProfile {
   id: string;
   email: string | null;
@@ -31,6 +40,8 @@ const UserList = () => {
   const [clearingUserId, setClearingUserId] = useState<string | null>(null);
   const [freezingUserId, setFreezingUserId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
+  const [deletingUser, setDeletingUser] = useState<UserWithRole | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -130,6 +141,46 @@ const UserList = () => {
       });
     } finally {
       setFreezingUserId(null);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    
+    setIsDeleting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        throw new Error("No active session");
+      }
+
+      const response = await supabase.functions.invoke("admin-delete-user", {
+        body: { user_id: deletingUser.id },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      toast({
+        title: "User deleted",
+        description: `${deletingUser.user_name || deletingUser.email || "User"} has been permanently deleted.`,
+      });
+
+      setDeletingUser(null);
+      await fetchUsers();
+    } catch (err: any) {
+      toast({
+        title: "Error deleting user",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -258,6 +309,16 @@ const UserList = () => {
                               )}
                             </Button>
                           )}
+                          {user.id !== currentUserId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeletingUser(user)}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -275,6 +336,38 @@ const UserList = () => {
           currentUserId={currentUserId}
           onSuccess={fetchUsers}
         />
+
+        <AlertDialog open={deletingUser !== null} onOpenChange={(open) => !open && setDeletingUser(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete User Account</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to permanently delete{" "}
+                <strong>{deletingUser?.user_name || deletingUser?.email || "this user"}</strong>?
+                <br /><br />
+                This will delete:
+                <ul className="list-disc list-inside mt-2">
+                  <li>The user's login credentials</li>
+                  <li>All their KPI data entries</li>
+                  <li>Their API keys</li>
+                  <li>Their profile information</li>
+                </ul>
+                <br />
+                <strong className="text-destructive">This action cannot be undone.</strong>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteUser}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? "Deleting..." : "Delete User"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
