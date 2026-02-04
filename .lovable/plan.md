@@ -1,71 +1,44 @@
 
-## Plan: Enable Login with Username or Email
+## Fix Admin Dashboard Query Limit
 
-### Overview
-Currently, the login uses Supabase's built-in Auth UI which only supports email login. To allow clients to log in with either their username or email, we need to create a custom login form and a backend function that handles the username-to-email lookup.
+### Problem
+The admin dashboard currently uses Supabase's default 1,000-row limit, causing only 9 of 12 reporting periods to display. With your projected growth to 60 clients × 36 months × ~116 fields = ~250,000 entries, this limit needs to be increased.
 
-### Why This Is Useful
-Since some clients have multiple businesses requiring separate accounts, using usernames (like "store42" or "jsmith-main") is more memorable and practical than remembering different email addresses for each account.
-
----
-
-### Changes Required
-
-#### 1. Create Custom Login Form
-Replace the Supabase Auth UI with a custom login form that:
-- Has a single "Username or Email" input field
-- Accepts either a username or email address
-- Shows password reset link
-- Matches the existing design
-
-#### 2. Create Backend Function for Username Lookup
-Create a new `login-with-identifier` function that:
-- Accepts a username or email + password
-- If the input looks like an email (contains @), use it directly
-- If it's a username, look up the email from the `profiles` table
-- Return appropriate error messages without revealing if users exist
-
-#### 3. Update Auth Page
-Replace the current Auth page to use the new custom form
+### Solution
+Add `.limit(300000)` to the KPI entries query in `useAdminKpiData.ts`. This is a valid limit - Supabase/PostgreSQL supports query limits up to millions of rows.
 
 ---
 
-### File Changes Summary
+### File Change
 
-| File | Action | Description |
-|------|--------|-------------|
-| `supabase/functions/login-with-identifier/index.ts` | Create | New function to handle username/email lookup and authentication |
-| `src/pages/Auth.tsx` | Modify | Replace Supabase Auth UI with custom login form |
+**`src/hooks/useAdminKpiData.ts`** (lines 30-34)
 
----
-
-### Technical Details
-
-#### Backend Function Logic
-
-```text
-User enters "identifier" (username or email) + password
-                    |
-                    v
-        Does identifier contain "@"?
-           /                 \
-         Yes                  No
-          |                    |
-    Use as email      Look up email from
-          |           profiles.user_name
-          |                    |
-          v                    v
-        Sign in with supabase.auth.signInWithPassword()
+Change the query from:
+```typescript
+const { data, error } = await supabase
+  .from("kpi_entries")
+  .select("*")
+  .order("year", { ascending: false })
+  .order("month", { ascending: false });
 ```
 
-#### Security Considerations
-- The function will use the service role key to look up usernames securely
-- Error messages will be generic ("Invalid credentials") to prevent username enumeration
-- RLS policies already prevent anonymous access to profiles table, so the lookup must happen server-side
+To:
+```typescript
+const { data, error } = await supabase
+  .from("kpi_entries")
+  .select("*")
+  .order("year", { ascending: false })
+  .order("month", { ascending: false })
+  .limit(300000);
+```
 
-#### Custom Login Form Features
-- Single input for username or email
-- Password field with show/hide toggle
-- "Forgot Password?" link (email required for password reset)
-- Loading state during authentication
-- Error handling with toast notifications
+---
+
+### Why This Works
+- The 1,000-row limit is a client-side default, not a database constraint
+- PostgreSQL can handle millions of rows per query
+- 300,000 provides ample headroom for 60 clients with 36 months of data each
+- No subscription upgrade required - this is simply overriding the default
+
+### After Implementation
+All 12 reporting periods will display correctly in the admin dashboard, and the system will scale to accommodate your projected client growth.
