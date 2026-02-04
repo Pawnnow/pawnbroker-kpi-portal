@@ -69,9 +69,68 @@ const ALL_KPI_COLUMNS = [
   "Dollar General Mdse", "Num General Mdse", "Dollar Jewelry",
   "Num Jewelry", "Dollar Firearms", "Num Firearms",
   "Dollar Tools", "Num Tools", "Dollar Electronics", "Num Electronics",
-  // Merchandise Inventory KPIs
+// Merchandise Inventory KPIs
   "Merch Inventory", "Layaway Inventory", "Scrap Inventory"
 ];
+
+const BATCH_SIZE = 1000;
+
+async function fetchAllKpiEntries(
+  supabase: any,
+  userId: string | null,
+  isAdmin: boolean,
+  yearFilter: string | null,
+  monthFilter: string | null,
+  categoryFilter: string | null
+) {
+  let allData: any[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    let query = supabase
+      .from('kpi_entries')
+      .select('year, month, category, field_name, field_label, field_value, user_id, created_at');
+
+    // Scope to user if not admin
+    if (!isAdmin && userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    // Apply filters
+    if (yearFilter) {
+      query = query.eq('year', parseInt(yearFilter));
+    }
+    if (monthFilter) {
+      query = query.eq('month', parseInt(monthFilter));
+    }
+    if (categoryFilter) {
+      query = query.eq('category', categoryFilter);
+    }
+
+    // Order and paginate
+    query = query
+      .order('year', { ascending: false })
+      .order('month', { ascending: false })
+      .order('category')
+      .order('field_name')
+      .range(offset, offset + BATCH_SIZE - 1);
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      allData = [...allData, ...data];
+      offset += BATCH_SIZE;
+      hasMore = data.length === BATCH_SIZE;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allData;
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -149,42 +208,26 @@ serve(async (req) => {
     const isAdmin = !!roleData;
     console.log(`User is admin: ${isAdmin}`);
 
-    // Build the query
-    let query = supabase
-      .from('kpi_entries')
-      .select('year, month, category, field_name, field_label, field_value, user_id, created_at');
-
-    // If not admin, scope to user's own data
-    if (!isAdmin) {
-      query = query.eq('user_id', keyRecord.user_id);
-    }
-
-    // Apply optional filters
-    if (yearFilter) {
-      query = query.eq('year', parseInt(yearFilter));
-    }
-    if (monthFilter) {
-      query = query.eq('month', parseInt(monthFilter));
-    }
-    if (categoryFilter) {
-      query = query.eq('category', categoryFilter);
-    }
-
-    // Order results
-    query = query.order('year', { ascending: false })
-                 .order('month', { ascending: false })
-                 .order('category')
-                 .order('field_name');
-
-    const { data: kpiData, error: kpiError } = await query;
-
-    if (kpiError) {
+    // Fetch all KPI entries using pagination to bypass 1000-row limit
+    let kpiData: any[];
+    try {
+      kpiData = await fetchAllKpiEntries(
+        supabase,
+        keyRecord.user_id,
+        isAdmin,
+        yearFilter,
+        monthFilter,
+        categoryFilter
+      );
+    } catch (kpiError) {
       console.error('Error fetching KPI data:', kpiError);
       return new Response(
         JSON.stringify({ error: 'Failed to fetch data' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log(`Fetched ${kpiData.length} total entries`);
 
     // If admin, fetch user profiles for identification (email, user_name, group)
     let userProfiles: Record<string, { email: string; user_name: string | null; group: number | null }> = {};
