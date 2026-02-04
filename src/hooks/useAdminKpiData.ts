@@ -31,7 +31,8 @@ export const useAdminKpiData = () => {
         .from("kpi_entries")
         .select("*")
         .order("year", { ascending: false })
-        .order("month", { ascending: false });
+        .order("month", { ascending: false })
+        .limit(300000);
 
       if (error) throw error;
 
