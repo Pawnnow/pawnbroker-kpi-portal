@@ -7,6 +7,36 @@ interface AdminKpiEntry extends KpiEntry {
   user_email?: string;
 }
 
+const BATCH_SIZE = 1000;
+
+async function fetchAllKpiEntries() {
+  let allData: any[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from("kpi_entries")
+      .select("*")
+      .order("year", { ascending: false })
+      .order("month", { ascending: false })
+      .range(offset, offset + BATCH_SIZE - 1);
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      allData = [...allData, ...data];
+      offset += BATCH_SIZE;
+      // If we got fewer than BATCH_SIZE, we've reached the end
+      hasMore = data.length === BATCH_SIZE;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allData;
+}
+
 export const useAdminKpiData = () => {
   return useQuery({
     queryKey: ["admin-kpi-entries"],
@@ -26,15 +56,8 @@ export const useAdminKpiData = () => {
         throw new Error("Access denied: Admin role required");
       }
 
-      // Fetch all KPI entries (admin can see all)
-      const { data, error } = await supabase
-        .from("kpi_entries")
-        .select("*")
-        .order("year", { ascending: false })
-        .order("month", { ascending: false })
-        .limit(300000);
-
-      if (error) throw error;
+      // Fetch all KPI entries using pagination to bypass 1000-row limit
+      const data = await fetchAllKpiEntries();
 
       // Get unique user IDs
       const userIds = [...new Set(data?.map(d => d.user_id) || [])];
