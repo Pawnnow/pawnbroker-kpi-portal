@@ -20,7 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import MonthSelector from "@/components/kpi/MonthSelector";
 import KpiInputColumn from "@/components/kpi/KpiInputColumn";
 import DataGrid from "@/components/kpi/DataGrid";
-import ExcelIntegration from "@/components/kpi/ExcelIntegration";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -31,12 +31,12 @@ import * as XLSX from "xlsx";
 const PAWN_KPIS = [
   { name: "ending_pawn_balance", label: "Ending Pawn Balance" },
   { name: "num_pawns_end", label: "# of Pawns at End of Month" },
-  { name: "dollar_pawns_written", label: "$ Pawns Written" },
   { name: "num_pawns_written", label: "# Pawns Written" },
-  { name: "dollar_pawns_redeemed", label: "$ Pawns Redeemed" },
+  { name: "dollar_pawns_written", label: "$ Pawns Written" },
   { name: "num_pawns_redeemed", label: "# Pawns Redeemed" },
-  { name: "dollar_pawns_defaulted", label: "$ Pawns Defaulted" },
+  { name: "dollar_pawns_redeemed", label: "$ Pawns Redeemed" },
   { name: "num_pawns_defaulted", label: "# Pawns Defaulted" },
+  { name: "dollar_pawns_defaulted", label: "$ Pawns Defaulted" },
   { name: "psc_collected", label: "PSC Collected" },
   { name: "num_pawns_renewed_30d", label: "# Pawns Renewed (Past 30 Days)" },
   { name: "dollar_pawns_renewed_30d", label: "$ Pawns Renewed (Past 30 Days)" },
@@ -50,10 +50,10 @@ const PAWN_KPIS = [
 const MERCHANDISE_KPIS = [
   { name: "layaway_balance", label: "Layaway Balance" },
   { name: "num_active_layaways", label: "# Active Layaways" },
-  { name: "dollar_new_layaways", label: "$ New Layaways Written" },
   { name: "num_new_layaways", label: "# New Layaways Written" },
-  { name: "dollar_redeemed_layaways", label: "$ Redeemed Layaways" },
+  { name: "dollar_new_layaways", label: "$ New Layaways Written" },
   { name: "num_redeemed_layaways", label: "# Redeemed Layaways" },
+  { name: "dollar_redeemed_layaways", label: "$ Redeemed Layaways" },
   { name: "num_sales_transactions_30d", label: "# Sales Transactions (Past 30 Days)" },
   { name: "retail_sales", label: "Retail Sales" },
   { name: "gross_sales", label: "Gross Sales" },
@@ -88,7 +88,7 @@ const MARKETING_KPIS = [
 const AGED_INVENTORY_COLUMNS = ["Total #", "Total $", "Jewelry", "Electronics", "Tools", "Musical", "Games", "Firearms", "Coins Bullion", "Other"];
 const AGED_INVENTORY_ROWS = ["0–90 Days", "91–120 Days", "121–180 Days", "181–210 Days", "211–365 Days", "365+ Days"];
 
-const PAWN_BALANCE_COLUMNS = ["$", "QTY"];
+const PAWN_BALANCE_COLUMNS = ["QTY", "$"];
 const PAWN_BALANCE_ROWS = [
   "$0 - $100",
   "$100 - $250",
@@ -583,8 +583,6 @@ const KpiUpload = () => {
             />
           </div>
 
-          {/* Excel Integration */}
-          <ExcelIntegration />
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-4">
