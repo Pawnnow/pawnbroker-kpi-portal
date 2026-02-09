@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,11 +34,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminKpiData } from "@/hooks/useAdminKpiData";
 import { useUserRole } from "@/hooks/useUserRole";
-import { LogOut, ArrowLeft, Users, Database, Calendar, Search, Shield, Trash2, AlertTriangle } from "lucide-react";
+import { LogOut, ArrowLeft, Users, Database, Calendar, Search, Shield, Trash2, AlertTriangle, Download, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ExcelIntegration from "@/components/kpi/ExcelIntegration";
 import CreateUserForm from "@/components/admin/CreateUserForm";
-import UserList from "@/components/admin/UserList";
+import UserListExpanded from "@/components/admin/UserListExpanded";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -58,6 +58,9 @@ const AdminDashboard = () => {
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [clearAllConfirmText, setClearAllConfirmText] = useState("");
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const restoreInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -232,6 +235,76 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDownloadBackup = async () => {
+    setIsBackingUp(true);
+    try {
+      if (!kpiData || kpiData.length === 0) {
+        toast({ title: "No data", description: "No KPI data to backup.", variant: "destructive" });
+        return;
+      }
+
+      const csvHeaders = ["user_id", "user_email", "year", "month", "category", "field_name", "field_label", "field_value"];
+      const csvRows = kpiData.map(entry => 
+        csvHeaders.map(h => {
+          const val = String((entry as any)[h] ?? "");
+          return val.includes(",") || val.includes('"') || val.includes("\n")
+            ? `"${val.replace(/"/g, '""')}"` : val;
+        }).join(",")
+      );
+
+      const csv = [csvHeaders.join(","), ...csvRows].join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `kpi_backup_${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Backup downloaded", description: `${kpiData.length} entries exported to CSV.` });
+    } catch (err: any) {
+      toast({ title: "Backup failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const handleRestoreUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsRestoring(true);
+    try {
+      const csvText = await file.text();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-restore-data`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ csv_data: csvText }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Restore failed");
+
+      toast({ title: "Restore complete", description: `${result.upserted} entries restored.` });
+      refetch();
+    } catch (err: any) {
+      toast({ title: "Restore failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsRestoring(false);
+      if (restoreInputRef.current) restoreInputRef.current.value = "";
+    }
+  };
+
+
   if (roleLoading) {
     return (
       <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
@@ -323,7 +396,7 @@ const AdminDashboard = () => {
         {/* User Management Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <CreateUserForm />
-          <UserList />
+          <UserListExpanded />
         </div>
 
         {/* Excel Integration for Admin */}
@@ -338,6 +411,29 @@ const AdminDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-4">
+            <Button
+              variant="outline"
+              onClick={handleDownloadBackup}
+              disabled={isBackingUp || !kpiData || kpiData.length === 0}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {isBackingUp ? "Downloading..." : "Download Backup (CSV)"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => restoreInputRef.current?.click()}
+              disabled={isRestoring}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {isRestoring ? "Restoring..." : "Restore from CSV"}
+            </Button>
+            <input
+              ref={restoreInputRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={handleRestoreUpload}
+            />
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button 
