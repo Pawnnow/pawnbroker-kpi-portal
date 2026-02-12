@@ -152,6 +152,46 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Send welcome email (best-effort, don't fail user creation if email fails)
+    try {
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      if (resendApiKey) {
+        const emailRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${resendApiKey}`,
+          },
+          body: JSON.stringify({
+            from: "Pawnbroker KPI Portal <noreply@updates.pawnbrokerkpi.com>",
+            to: [email],
+            subject: "Welcome to Pawnbroker KPI Portal",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #1a1a2e;">Welcome to Pawnbroker KPI Portal</h2>
+                <p>Hello <strong>${user_name}</strong>,</p>
+                <p>Your account has been created. Here are your login credentials:</p>
+                <div style="background: #f4f4f8; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                  <p style="margin: 4px 0;"><strong>Username:</strong> ${user_name}</p>
+                  <p style="margin: 4px 0;"><strong>Email:</strong> ${email}</p>
+                  <p style="margin: 4px 0;"><strong>Temporary Password:</strong> ${password}</p>
+                </div>
+                <p style="color: #e74c3c; font-weight: bold;">You will be required to change your password on first login.</p>
+                <p>If you have any questions, please contact your administrator.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+                <p style="font-size: 12px; color: #888;">Pawnbroker KPI Portal</p>
+              </div>
+            `,
+          }),
+        });
+        if (!emailRes.ok) {
+          console.error("Welcome email failed:", await emailRes.text());
+        }
+      }
+    } catch (emailErr) {
+      console.error("Welcome email error:", emailErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
