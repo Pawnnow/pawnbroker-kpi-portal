@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Pawnbroker KPI Portal <noreply@updates.pawnbrokerkpi.com>",
+        from: "Pawnbroker KPI Portal <noreply@kpi.pawngorillas.com>",
         to: [to],
         subject,
         html,
