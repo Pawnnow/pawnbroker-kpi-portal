@@ -24,6 +24,7 @@ import DataGrid from "@/components/kpi/DataGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Download, BarChart3, Shield } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -118,6 +119,14 @@ const KpiUpload = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
+  const {
+    pawnKpis,
+    merchandiseKpis,
+    marketingKpis,
+    showAgedInventoryGrid,
+    showPawnBalanceGrid,
+    isLoading: fieldConfigLoading,
+  } = useVisibleKpiFields();
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2024 + 10 }, (_, i) => 2024 + i);
@@ -541,47 +550,62 @@ const KpiUpload = () => {
           </div>
 
           {/* KPI Input Columns */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <KpiInputColumn
-              title="Pawn KPIs"
-              fields={PAWN_KPIS}
-              values={pawnValues}
-              onChange={(name, value) => setPawnValues({ ...pawnValues, [name]: value })}
-              category="pawn"
-            />
-            <KpiInputColumn
-              title="Merchandise KPIs"
-              fields={MERCHANDISE_KPIS}
-              values={merchandiseValues}
-              onChange={(name, value) => setMerchandiseValues({ ...merchandiseValues, [name]: value })}
-              category="merchandise"
-            />
-            <KpiInputColumn
-              title="Marketing KPIs"
-              fields={MARKETING_KPIS}
-              values={marketingValues}
-              onChange={(name, value) => setMarketingValues({ ...marketingValues, [name]: value })}
-              category="marketing"
-            />
-          </div>
+          {fieldConfigLoading ? (
+            <p className="text-muted-foreground text-center py-8">Loading fields...</p>
+          ) : (
+            <>
+              {(() => {
+                const columns = [
+                  { title: "Pawn KPIs", fields: pawnKpis, values: pawnValues, onChange: (name: string, value: string) => setPawnValues({ ...pawnValues, [name]: value }), category: "pawn" as const },
+                  { title: "Merchandise KPIs", fields: merchandiseKpis, values: merchandiseValues, onChange: (name: string, value: string) => setMerchandiseValues({ ...merchandiseValues, [name]: value }), category: "merchandise" as const },
+                  { title: "Marketing KPIs", fields: marketingKpis, values: marketingValues, onChange: (name: string, value: string) => setMarketingValues({ ...marketingValues, [name]: value }), category: "marketing" as const },
+                ].filter((col) => col.fields.length > 0);
 
-          {/* Data Grids */}
-          <div className="space-y-6">
-            <DataGrid
-              title="Aged Inventory Grid"
-              columns={AGED_INVENTORY_COLUMNS}
-              rows={AGED_INVENTORY_ROWS}
-              values={agedInventoryValues}
-              onChange={(key, value) => setAgedInventoryValues({ ...agedInventoryValues, [key]: value })}
-            />
-            <DataGrid
-              title="Pawn Balance Breakdown Grid"
-              columns={PAWN_BALANCE_COLUMNS}
-              rows={PAWN_BALANCE_ROWS}
-              values={pawnBalanceValues}
-              onChange={(key, value) => setPawnBalanceValues({ ...pawnBalanceValues, [key]: value })}
-            />
-          </div>
+                const gridClass = columns.length === 3
+                  ? "grid grid-cols-1 lg:grid-cols-3 gap-6"
+                  : columns.length === 2
+                  ? "grid grid-cols-1 lg:grid-cols-2 gap-6"
+                  : "grid grid-cols-1 gap-6";
+
+                return columns.length > 0 ? (
+                  <div className={gridClass}>
+                    {columns.map((col) => (
+                      <KpiInputColumn
+                        key={col.category}
+                        title={col.title}
+                        fields={col.fields}
+                        values={col.values}
+                        onChange={col.onChange}
+                        category={col.category}
+                      />
+                    ))}
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Data Grids */}
+              <div className="space-y-6">
+                {showAgedInventoryGrid && (
+                  <DataGrid
+                    title="Aged Inventory Grid"
+                    columns={AGED_INVENTORY_COLUMNS}
+                    rows={AGED_INVENTORY_ROWS}
+                    values={agedInventoryValues}
+                    onChange={(key, value) => setAgedInventoryValues({ ...agedInventoryValues, [key]: value })}
+                  />
+                )}
+                {showPawnBalanceGrid && (
+                  <DataGrid
+                    title="Pawn Balance Breakdown Grid"
+                    columns={PAWN_BALANCE_COLUMNS}
+                    rows={PAWN_BALANCE_ROWS}
+                    values={pawnBalanceValues}
+                    onChange={(key, value) => setPawnBalanceValues({ ...pawnBalanceValues, [key]: value })}
+                  />
+                )}
+              </div>
+            </>
+          )}
 
 
           {/* Action Buttons */}
