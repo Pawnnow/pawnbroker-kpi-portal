@@ -91,6 +91,36 @@ export type Database = {
           },
         ]
       }
+      kpi_field_config: {
+        Row: {
+          category: string
+          display_order: number
+          field_label: string
+          field_name: string
+          id: string
+          is_visible: boolean
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          display_order?: number
+          field_label: string
+          field_name: string
+          id?: string
+          is_visible?: boolean
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          display_order?: number
+          field_label?: string
+          field_name?: string
+          id?: string
+          is_visible?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null

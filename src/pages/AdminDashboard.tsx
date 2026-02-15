@@ -39,6 +39,7 @@ import { useToast } from "@/hooks/use-toast";
 import ExcelIntegration from "@/components/kpi/ExcelIntegration";
 import CreateUserForm from "@/components/admin/CreateUserForm";
 import UserListExpanded from "@/components/admin/UserListExpanded";
+import FieldVisibilityManager from "@/components/admin/FieldVisibilityManager";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -398,6 +399,9 @@ const AdminDashboard = () => {
           <CreateUserForm />
           <UserListExpanded />
         </div>
+
+        {/* Field Visibility Manager */}
+        <FieldVisibilityManager />
 
         {/* Excel Integration for Admin */}
         <ExcelIntegration />
