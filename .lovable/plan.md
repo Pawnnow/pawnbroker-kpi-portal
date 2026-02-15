@@ -1,67 +1,66 @@
 
+# KPI Field Visibility Toggle System
 
-# Update Plan Summary
+## Overview
+Add an admin-controlled toggle system that lets you show/hide individual KPI fields on the Upload page. Hidden fields stay in the code and can be re-enabled anytime. Exports are unaffected.
 
-This plan covers four changes: one client-side cleanup, one new admin feature, one field reordering fix, and one admin UI improvement.
+## Implementation Steps
 
----
+### Step 1: Database -- Create `kpi_field_config` table
 
-## 1. Remove Excel Integration from Client Upload Page
+Create a new table to store visibility settings for each KPI field:
 
-Remove the Excel Integration component from the KPI Upload page so regular users no longer see it. It remains on the Admin Dashboard.
+| Column | Type | Purpose |
+|--------|------|---------|
+| `id` | uuid (PK) | Auto-generated |
+| `field_name` | text (unique) | Matches KPI field name |
+| `category` | text | pawn, merchandise, marketing, aged_inventory, pawn_balance |
+| `field_label` | text | Human-readable label for the admin UI |
+| `is_visible` | boolean, default true | Toggle on/off |
+| `display_order` | integer | Preserve field ordering |
+| `updated_at` | timestamptz | Last change timestamp |
 
-**File:** `src/pages/KpiUpload.tsx`
-- Remove the `ExcelIntegration` import
-- Remove the `<ExcelIntegration />` usage from the page
+- Seed all current fields (50+) as visible by default
+- RLS: authenticated users can SELECT; admins can UPDATE
+- Aged Inventory and Pawn Balance grids get one row each as grid-level toggles (simpler than per-cell toggles)
 
----
+### Step 2: Create a custom hook -- `useKpiFieldConfig`
 
-## 2. CSV Backup and Restore (Admin Dashboard)
+New file `src/hooks/useKpiFieldConfig.ts`:
+- Fetches all rows from `kpi_field_config`
+- Returns filtered arrays for each category (only visible fields)
+- Returns grid visibility booleans for aged_inventory and pawn_balance
+- Uses TanStack Query for caching
 
-Add disaster recovery capability so admins can download all KPI data as a CSV and restore from a CSV if needed.
+### Step 3: Update KPI Upload Page
 
-### Backup (Download CSV)
-- Add a "Download Backup" button to the Admin Dashboard's Data Management section
-- Fetch all `kpi_entries` via the existing admin data hook (with pagination to avoid row limits)
-- Generate and download a CSV containing: `user_id`, `user_email`, `year`, `month`, `category`, `field_name`, `field_label`, `field_value`
+Modify `src/pages/KpiUpload.tsx`:
+- Use the new hook to get visible field lists
+- Pass filtered arrays to `KpiInputColumn` components instead of the full constants
+- Conditionally render each column only if it has visible fields
+- Conditionally render grids based on grid-level visibility
+- The existing `grid-cols-1 lg:grid-cols-3` layout will naturally adapt (collapse to 2 or 1 columns)
 
-### Restore (Upload CSV)
-- Add an "Upload Restore" button with file input
-- Create a new edge function `admin-restore-data` that:
-  - Validates the admin role
-  - Parses the CSV
-  - Upserts records into `kpi_entries` (matching on `user_id`, `year`, `month`, `field_name`) to avoid duplicates
-- Show progress/result feedback via toast notifications
+### Step 4: Admin Dashboard -- Field Visibility Manager
 
-**Files:**
-- `src/pages/AdminDashboard.tsx` -- add backup/restore UI
-- `supabase/functions/admin-restore-data/index.ts` -- new edge function for CSV restore
+Add a new section to `src/pages/AdminDashboard.tsx` (or a dedicated component):
+- Grouped by category with expandable sections
+- Switch/toggle next to each field label
+- "Toggle All" per category for bulk changes
+- Changes save immediately on toggle via Supabase update
+- For grids, a single toggle to show/hide the entire grid
 
----
+### Step 5: Verify Export Is Unaffected
 
-## 3. Reorder KPI Fields on Upload Page
+- The export logic in `KpiUpload.tsx` and the `kpi-export` edge function query `kpi_entries` directly
+- No changes needed -- hidden fields simply won't have new data, but historical values remain exportable
 
-Ensure count (#) fields always appear before dollar ($) fields, and swap the Pawn Balance grid columns so QTY comes before $.
+## Files Changed
 
-**File:** `src/pages/KpiUpload.tsx`
-- Swap field order for all paired KPIs (Pawns Written, Pawns Redeemed, Pawns Defaulted, New Layaways Written, Redeemed Layaways) so `#` precedes `$`
-- Change the Pawn Balance grid column order from `["$", "QTY"]` to `["QTY", "$"]`
-
----
-
-## 4. Expandable User List on Admin Dashboard
-
-Add a pop-out button to the Existing Users card that opens the full user list in a large dialog/modal for easier viewing.
-
-**Files:**
-- `src/components/admin/UserList.tsx` -- add a maximize/expand button to the card header that opens a full-screen `Dialog` containing the user table with more room to view and manage users
-
----
-
-## Implementation Order
-
-1. Field reordering (Update 3) -- simple, no backend changes
-2. Remove Excel Integration (Update 1) -- simple removal
-3. Expandable User List (Update 4) -- UI-only change
-4. CSV Backup & Restore (Update 2) -- largest change, includes new edge function
-
+| File | Change |
+|------|--------|
+| Database migration | New `kpi_field_config` table + seed data + RLS |
+| `src/hooks/useKpiFieldConfig.ts` | New hook to fetch and filter field config |
+| `src/pages/KpiUpload.tsx` | Use hook to filter displayed fields and grids |
+| `src/pages/AdminDashboard.tsx` | Add Field Visibility management UI |
+| New component (e.g. `src/components/admin/FieldVisibilityManager.tsx`) | Toggle UI grouped by category |
