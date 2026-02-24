@@ -130,7 +130,7 @@ const KpiUpload = () => {
   } = useVisibleKpiFields();
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: currentYear - 2024 + 10 }, (_, i) => 2024 + i);
+  const years = Array.from({ length: currentYear - 2022 + 10 }, (_, i) => 2022 + i);
 
   // Fetch available months when export dialog opens
   useEffect(() => {
@@ -506,10 +506,12 @@ const KpiUpload = () => {
                 Admin
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Dashboard
-            </Button>
+            {roleData?.isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={() => setExportDialogOpen(true)} disabled={isExporting}>
               <Download className="w-4 h-4 mr-2" />
               {isExporting ? "Exporting..." : "Export Excel"}
