@@ -10,6 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ChangePassword from "./pages/ChangePassword";
 import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,15 +22,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/kpi-upload" replace />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <KpiDashboard />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route
