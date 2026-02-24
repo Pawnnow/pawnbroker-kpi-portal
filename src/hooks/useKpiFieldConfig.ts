@@ -36,13 +36,35 @@ export const useVisibleKpiFields = () => {
   const isGridVisible = (gridFieldName: string) =>
     allFields?.find((f) => f.field_name === gridFieldName)?.is_visible ?? true;
 
+  // Map aged_inventory column field_names back to their display labels
+  const AGED_COL_MAP: Record<string, string> = {
+    aged_col_total_num: "Total #",
+    aged_col_total_dollar: "Total $",
+    aged_col_jewelry: "Jewelry",
+    aged_col_electronics: "Electronics",
+    aged_col_tools: "Tools",
+    aged_col_musical: "Musical",
+    aged_col_games: "Games",
+    aged_col_firearms: "Firearms",
+    aged_col_coins_bullion: "Coins Bullion",
+    aged_col_other: "Other",
+  };
+
+  const visibleAgedInventoryColumns =
+    allFields
+      ?.filter((f) => f.category === "aged_inventory" && f.is_visible)
+      ?.sort((a, b) => a.display_order - b.display_order)
+      ?.map((f) => AGED_COL_MAP[f.field_name])
+      ?.filter(Boolean) ?? Object.values(AGED_COL_MAP);
+
   return {
     isLoading,
     error,
     pawnKpis: visibleByCategory("pawn"),
     merchandiseKpis: visibleByCategory("merchandise"),
     marketingKpis: visibleByCategory("marketing"),
-    showAgedInventoryGrid: isGridVisible("aged_inventory_grid"),
+    visibleAgedInventoryColumns,
+    showAgedInventoryGrid: visibleAgedInventoryColumns.length > 0,
     showPawnBalanceGrid: isGridVisible("pawn_balance_grid"),
   };
 };

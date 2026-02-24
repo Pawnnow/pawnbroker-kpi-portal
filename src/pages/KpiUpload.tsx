@@ -123,6 +123,7 @@ const KpiUpload = () => {
     pawnKpis,
     merchandiseKpis,
     marketingKpis,
+    visibleAgedInventoryColumns,
     showAgedInventoryGrid,
     showPawnBalanceGrid,
     isLoading: fieldConfigLoading,
@@ -588,7 +589,7 @@ const KpiUpload = () => {
                 {showAgedInventoryGrid && (
                   <DataGrid
                     title="Aged Inventory Grid"
-                    columns={AGED_INVENTORY_COLUMNS}
+                    columns={visibleAgedInventoryColumns}
                     rows={AGED_INVENTORY_ROWS}
                     values={agedInventoryValues}
                     onChange={(key, value) => setAgedInventoryValues({ ...agedInventoryValues, [key]: value })}
