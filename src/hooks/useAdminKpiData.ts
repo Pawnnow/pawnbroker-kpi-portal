@@ -5,6 +5,9 @@ import type { KpiEntry } from "./useKpiData";
 interface AdminKpiEntry extends KpiEntry {
   user_id: string;
   user_email?: string;
+  store_code?: string | null;
+  store_name?: string | null;
+  location_id?: string | null;
 }
 
 const BATCH_SIZE = 1000;
@@ -70,11 +73,31 @@ export const useAdminKpiData = () => {
 
       const emailMap = new Map(profiles?.map(p => [p.id, p.email]) || []);
 
-      // Attach email to each entry
-      const enrichedData = data?.map(entry => ({
-        ...entry,
-        user_email: emailMap.get(entry.user_id) || "Unknown",
-      })) as AdminKpiEntry[];
+      // Fetch all locations for store_code lookup
+      const locationIds = [...new Set(data?.filter(d => d.location_id).map(d => d.location_id) || [])];
+      let locationMap = new Map<string, { store_code: string; store_name: string }>();
+      if (locationIds.length > 0) {
+        const { data: locations } = await supabase
+          .from("locations")
+          .select("id, store_code, store_name")
+          .in("id", locationIds);
+        if (locations) {
+          locations.forEach((loc: any) => {
+            locationMap.set(loc.id, { store_code: loc.store_code, store_name: loc.store_name });
+          });
+        }
+      }
+
+      // Attach email and location info to each entry
+      const enrichedData = data?.map(entry => {
+        const loc = entry.location_id ? locationMap.get(entry.location_id) : null;
+        return {
+          ...entry,
+          user_email: emailMap.get(entry.user_id) || "Unknown",
+          store_code: loc?.store_code || null,
+          store_name: loc?.store_name || null,
+        };
+      }) as AdminKpiEntry[];
 
       return enrichedData;
     },

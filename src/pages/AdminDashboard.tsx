@@ -40,6 +40,7 @@ import ExcelIntegration from "@/components/kpi/ExcelIntegration";
 import CreateUserForm from "@/components/admin/CreateUserForm";
 import UserListExpanded from "@/components/admin/UserListExpanded";
 import FieldVisibilityManager from "@/components/admin/FieldVisibilityManager";
+import LocationManager from "@/components/admin/LocationManager";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -402,6 +403,9 @@ const AdminDashboard = () => {
 
         {/* Field Visibility Manager */}
         <FieldVisibilityManager />
+
+        {/* Location Manager */}
+        <LocationManager />
 
         {/* Excel Integration for Admin */}
         <ExcelIntegration />

@@ -25,8 +25,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
+import { useUserLocations } from "@/hooks/useUserLocations";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Download, BarChart3, Shield } from "lucide-react";
+import { LogOut, Download, BarChart3, Shield, Store } from "lucide-react";
 import * as XLSX from "xlsx";
 
 const PAWN_KPIS = [
@@ -115,10 +116,13 @@ const KpiUpload = () => {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [availableMonths, setAvailableMonths] = useState<{ year: number; month: number }[]>([]);
   const [selectedExportMonths, setSelectedExportMonths] = useState<Set<string>>(new Set());
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
   
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
+  const { data: locations } = useUserLocations();
+  const hasLocations = locations && locations.length > 0;
   const {
     pawnKpis,
     merchandiseKpis,
@@ -371,6 +375,15 @@ const KpiUpload = () => {
       return;
     }
 
+    if (hasLocations && !selectedLocationId) {
+      toast({
+        title: "Missing store selection",
+        description: "Please select a store location.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -381,6 +394,8 @@ const KpiUpload = () => {
       }
 
       const entries = [];
+
+      const locationId = hasLocations ? selectedLocationId : null;
 
       // Add pawn KPIs
       for (const field of PAWN_KPIS) {
@@ -393,6 +408,7 @@ const KpiUpload = () => {
             field_label: field.label,
             field_value: pawnValues[field.name],
             category: "pawn",
+            ...(locationId && { location_id: locationId }),
           });
         }
       }
@@ -408,6 +424,7 @@ const KpiUpload = () => {
             field_label: field.label,
             field_value: merchandiseValues[field.name],
             category: "merchandise",
+            ...(locationId && { location_id: locationId }),
           });
         }
       }
@@ -423,6 +440,7 @@ const KpiUpload = () => {
             field_label: field.label,
             field_value: marketingValues[field.name],
             category: "marketing",
+            ...(locationId && { location_id: locationId }),
           });
         }
       }
@@ -438,6 +456,7 @@ const KpiUpload = () => {
             field_label: key,
             field_value: value,
             category: "aged_inventory",
+            ...(locationId && { location_id: locationId }),
           });
         }
       });
@@ -453,6 +472,7 @@ const KpiUpload = () => {
             field_label: key,
             field_value: value,
             category: "pawn_balance",
+            ...(locationId && { location_id: locationId }),
           });
         }
       });
@@ -467,12 +487,30 @@ const KpiUpload = () => {
         return;
       }
 
+      // Delete existing entries for this user/location/year/month, then insert fresh
+      let deleteQuery = supabase
+        .from("kpi_entries")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("year", year)
+        .eq("month", month);
+      
+      if (locationId) {
+        deleteQuery = deleteQuery.eq("location_id", locationId);
+      } else {
+        deleteQuery = deleteQuery.is("location_id", null);
+      }
+
+      // Only delete field_names we're about to insert (preserve fields not in this submission)
+      const fieldNames = entries.map(e => e.field_name);
+      deleteQuery = deleteQuery.in("field_name", fieldNames);
+
+      const { error: deleteError } = await deleteQuery;
+      if (deleteError) throw deleteError;
+
       const { error } = await supabase
         .from("kpi_entries")
-        .upsert(entries, { 
-          onConflict: 'user_id,year,month,field_name',
-          ignoreDuplicates: false 
-        });
+        .insert(entries);
 
       if (error) throw error;
 
@@ -526,6 +564,28 @@ const KpiUpload = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-8">
+          {/* Store Location Selector */}
+          {hasLocations && (
+            <div className="bg-card rounded-lg border border-border p-6">
+              <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                <Store className="w-5 h-5" />
+                Select Store
+              </h2>
+              <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a store location..." />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {locations!.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.store_code} - {loc.store_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Year and Month Selection */}
           <div className="bg-card rounded-lg border border-border p-6">
             <h2 className="text-xl font-bold text-foreground mb-4">Reporting Period</h2>

@@ -81,7 +81,9 @@ async function fetchAllKpiEntries(
   isAdmin: boolean,
   yearFilter: string | null,
   monthFilter: string | null,
-  categoryFilter: string | null
+  categoryFilter: string | null,
+  storeCodeFilter: string | null,
+  locationIdSet: Set<string> | null
 ) {
   let allData: any[] = [];
   let offset = 0;
@@ -90,7 +92,7 @@ async function fetchAllKpiEntries(
   while (hasMore) {
     let query = supabase
       .from('kpi_entries')
-      .select('year, month, category, field_name, field_label, field_value, user_id, created_at');
+      .select('year, month, category, field_name, field_label, field_value, user_id, location_id, created_at');
 
     // Scope to user if not admin
     if (!isAdmin && userId) {
@@ -106,6 +108,10 @@ async function fetchAllKpiEntries(
     }
     if (categoryFilter) {
       query = query.eq('category', categoryFilter);
+    }
+    // Filter by location IDs (from store_code filter)
+    if (locationIdSet && locationIdSet.size > 0) {
+      query = query.in('location_id', Array.from(locationIdSet));
     }
 
     // Order and paginate
@@ -145,6 +151,7 @@ serve(async (req) => {
     const monthFilter = url.searchParams.get('month');
     const categoryFilter = url.searchParams.get('category');
     const format = url.searchParams.get('format') || 'long'; // 'long' (default) or 'wide'
+    const storeCodeFilter = url.searchParams.get('store_code');
 
     if (!apiKey) {
       console.log('Missing API key in request');
@@ -208,6 +215,24 @@ serve(async (req) => {
     const isAdmin = !!roleData;
     console.log(`User is admin: ${isAdmin}`);
 
+    // If store_code filter, look up matching location IDs first
+    let locationIdSet: Set<string> | null = null;
+    if (storeCodeFilter) {
+      const { data: matchingLocs } = await supabase
+        .from('locations')
+        .select('id')
+        .eq('store_code', storeCodeFilter);
+      if (matchingLocs && matchingLocs.length > 0) {
+        locationIdSet = new Set(matchingLocs.map((l: any) => l.id));
+      } else {
+        // No matching location — return empty
+        return new Response(
+          JSON.stringify({ data: [], meta: { total: 0, fetched_at: new Date().toISOString(), is_admin_view: isAdmin, format, filters: { year: yearFilter, month: monthFilter, category: categoryFilter, store_code: storeCodeFilter } } }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // Fetch all KPI entries using pagination to bypass 1000-row limit
     let kpiData: any[];
     try {
@@ -217,7 +242,9 @@ serve(async (req) => {
         isAdmin,
         yearFilter,
         monthFilter,
-        categoryFilter
+        categoryFilter,
+        storeCodeFilter,
+        locationIdSet
       );
     } catch (kpiError) {
       console.error('Error fetching KPI data:', kpiError);
@@ -249,6 +276,29 @@ serve(async (req) => {
       }
     }
 
+    // Fetch location data for entries that have location_id
+    let locationMap: Record<string, { store_code: string; store_name: string }> = {};
+    const locationIds = [...new Set(kpiData.filter(d => d.location_id).map(d => d.location_id))];
+    if (locationIds.length > 0) {
+      const { data: locations } = await supabase
+        .from('locations')
+        .select('id, store_code, store_name')
+        .in('id', locationIds);
+      if (locations) {
+        locations.forEach((l: any) => {
+          locationMap[l.id] = { store_code: l.store_code, store_name: l.store_name };
+        });
+      }
+    }
+
+    // Helper: resolve user_name — use store_code if location exists, else profile user_name
+    const resolveUserName = (row: any) => {
+      if (row.location_id && locationMap[row.location_id]) {
+        return locationMap[row.location_id].store_code;
+      }
+      return userProfiles[row.user_id]?.user_name || null;
+    };
+
     // Format response based on requested format
     let responseData;
     
@@ -257,13 +307,16 @@ serve(async (req) => {
       const pivotMap = new Map<string, Record<string, any>>();
       
       kpiData?.forEach(row => {
-        // Group by user/year/month only (not category) so all KPIs appear in one row
+        // Group by user/location/year/month so each location gets its own row
+        const locationKey = row.location_id || 'none';
         const key = isAdmin 
-          ? `${row.user_id}-${row.year}-${row.month}`
-          : `${row.year}-${row.month}`;
+          ? `${row.user_id}-${locationKey}-${row.year}-${row.month}`
+          : `${locationKey}-${row.year}-${row.month}`;
         
         if (!pivotMap.has(key)) {
           const profile = userProfiles[row.user_id];
+          const userName = resolveUserName(row);
+          const loc = row.location_id ? locationMap[row.location_id] : null;
           // Initialize base row with metadata
           const baseRow: Record<string, any> = {
             year: row.year,
@@ -271,9 +324,10 @@ serve(async (req) => {
             month_name: getMonthName(row.month),
             ...(isAdmin && { 
               user_id: String(row.user_id),
-              user_name: profile?.user_name || null,
+              user_name: userName,
               user_email: profile?.email || 'Unknown',
-              group: profile?.group ?? null
+              group: profile?.group ?? null,
+              ...(loc && { store_name: loc.store_name })
             })
           };
           
@@ -303,6 +357,8 @@ serve(async (req) => {
       // Long format (default) - convert numeric values
       responseData = kpiData?.map(row => {
         const profile = userProfiles[row.user_id];
+        const userName = resolveUserName(row);
+        const loc = row.location_id ? locationMap[row.location_id] : null;
         return {
           year: row.year,
           month: row.month,
@@ -313,9 +369,10 @@ serve(async (req) => {
           field_value: parseNumericValue(row.field_value),
           ...(isAdmin && { 
             user_id: String(row.user_id),
-            user_name: profile?.user_name || null,
+            user_name: userName,
             user_email: profile?.email || 'Unknown',
-            group: profile?.group ?? null
+            group: profile?.group ?? null,
+            ...(loc && { store_name: loc.store_name })
           })
         };
       });
@@ -331,7 +388,8 @@ serve(async (req) => {
         filters: {
           year: yearFilter || null,
           month: monthFilter || null,
-          category: categoryFilter || null
+          category: categoryFilter || null,
+          store_code: storeCodeFilter || null
         }
       }
     };
