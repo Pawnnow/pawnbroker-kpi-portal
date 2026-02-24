@@ -13,7 +13,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   pawn: "Pawn KPIs",
   merchandise: "Merchandise KPIs",
   marketing: "Marketing KPIs",
-  aged_inventory: "Aged Inventory Grid",
+  aged_inventory: "Aged Inventory Columns",
   pawn_balance: "Pawn Balance Breakdown Grid",
 };
 
