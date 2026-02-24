@@ -52,6 +52,7 @@ export type Database = {
           field_name: string
           field_value: string | null
           id: string
+          location_id: string | null
           month: number
           updated_at: string | null
           user_id: string
@@ -64,6 +65,7 @@ export type Database = {
           field_name: string
           field_value?: string | null
           id?: string
+          location_id?: string | null
           month: number
           updated_at?: string | null
           user_id: string
@@ -76,12 +78,20 @@ export type Database = {
           field_name?: string
           field_value?: string | null
           id?: string
+          location_id?: string | null
           month?: number
           updated_at?: string | null
           user_id?: string
           year?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "kpi_entries_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "kpi_entries_user_id_fkey"
             columns: ["user_id"]
@@ -120,6 +130,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      locations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          store_code: string
+          store_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          store_code: string
+          store_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          store_code?: string
+          store_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
