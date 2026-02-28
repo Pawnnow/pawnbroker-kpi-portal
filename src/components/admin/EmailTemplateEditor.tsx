@@ -24,6 +24,7 @@ const PLACEHOLDERS = [
   { key: "{{email}}", desc: "Email address" },
   { key: "{{password}}", desc: "Temporary password" },
   { key: "{{full_name}}", desc: "Full name" },
+  { key: "{{member_number}}", desc: "Member number" },
 ];
 
 const htmlToPlainText = (html: string): string => {

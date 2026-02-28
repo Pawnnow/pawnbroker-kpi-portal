@@ -25,9 +25,10 @@ async function verifyAdmin(req: Request, supabaseUrl: string, supabaseAnonKey: s
   return user;
 }
 
-function validateInput(body: { email: string; password: string; user_name: string; group?: number }) {
-  const { email, password, user_name, group } = body;
+function validateInput(body: { email: string; password: string; user_name: string; member_number?: string; group?: number }) {
+  const { email, password, user_name, member_number, group } = body;
   if (!email || !password || !user_name) throw new Error("Email, password, and user_name are required");
+  if (!member_number) throw new Error("Member number is required");
 
   const groupValue = typeof group === "number" ? group : 0;
   if (groupValue < 0 || groupValue > 5) throw new Error("Group must be between 0 and 5");
@@ -45,6 +46,7 @@ async function sendWelcomeEmail(
   user_name: string,
   password: string,
   full_name: string,
+  member_number: string,
 ) {
   // Fetch template from DB
   const { data: tpl } = await adminClient
@@ -63,7 +65,8 @@ async function sendWelcomeEmail(
         .replace(/\{\{user_name\}\}/g, user_name)
         .replace(/\{\{email\}\}/g, email)
         .replace(/\{\{password\}\}/g, password)
-        .replace(/\{\{full_name\}\}/g, full_name || "");
+        .replace(/\{\{full_name\}\}/g, full_name || "")
+        .replace(/\{\{member_number\}\}/g, member_number || "");
 
     subject = replacePlaceholders(tpl.subject);
     html = replacePlaceholders(tpl.body_html);
@@ -123,7 +126,7 @@ Deno.serve(async (req) => {
     await verifyAdmin(req, supabaseUrl, supabaseAnonKey);
 
     const body = await req.json();
-    const { email, password, user_name, full_name } = body;
+    const { email, password, user_name, full_name, member_number } = body;
     const groupValue = validateInput(body);
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
@@ -140,6 +143,22 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "User name is already taken" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Check if member_number is already taken
+    if (member_number) {
+      const { data: existingMember } = await adminClient
+        .from("profiles")
+        .select("id")
+        .eq("member_number", member_number)
+        .single();
+
+      if (existingMember) {
+        return new Response(
+          JSON.stringify({ error: "Member number is already taken" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Create the user
@@ -163,6 +182,7 @@ Deno.serve(async (req) => {
       .update({
         user_name,
         full_name: full_name || "",
+        member_number: member_number || null,
         must_change_password: true,
         group: groupValue,
       })
@@ -181,7 +201,7 @@ Deno.serve(async (req) => {
     try {
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
       if (resendApiKey) {
-        emailSent = await sendWelcomeEmail(adminClient, resendApiKey, email, user_name, password, full_name || "");
+        emailSent = await sendWelcomeEmail(adminClient, resendApiKey, email, user_name, password, full_name || "", member_number || "");
       }
     } catch (emailErr) {
       console.error("Welcome email error:", emailErr);

@@ -35,19 +35,19 @@ Deno.serve(async (req) => {
 
     let email = identifier.trim();
 
-    // Check if identifier is an email (contains @) or username
+    // Check if identifier is an email (contains @) or member number
     if (!identifier.includes("@")) {
-      console.log("Identifier is a username, looking up email...");
+      console.log("Identifier is a member number, looking up email...");
       
-      // Look up email from profiles table using the username
+      // Look up email from profiles table using the member number
       const { data: profile, error: lookupError } = await adminClient
         .from("profiles")
         .select("email")
-        .eq("user_name", identifier.trim())
+        .eq("member_number", identifier.trim())
         .maybeSingle();
 
       if (lookupError) {
-        console.error("Error looking up username:", lookupError);
+        console.error("Error looking up member number:", lookupError);
         return new Response(
           JSON.stringify({ error: "Invalid credentials" }),
           {
@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       }
 
       if (!profile || !profile.email) {
-        console.log("Username not found in profiles");
+        console.log("Member number not found in profiles");
         // Return generic error to prevent username enumeration
         return new Response(
           JSON.stringify({ error: "Invalid credentials" }),
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       }
 
       email = profile.email;
-      console.log("Found email for username");
+      console.log("Found email for member number");
     }
 
     // Create client with anon key for authentication
