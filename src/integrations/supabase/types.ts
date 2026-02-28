@@ -44,6 +44,47 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          attachment_filename: string | null
+          attachment_url: string | null
+          body_html: string
+          id: string
+          subject: string
+          template_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          attachment_filename?: string | null
+          attachment_url?: string | null
+          body_html: string
+          id?: string
+          subject: string
+          template_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          attachment_filename?: string | null
+          attachment_url?: string | null
+          body_html?: string
+          id?: string
+          subject?: string
+          template_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpi_entries: {
         Row: {
           category: string

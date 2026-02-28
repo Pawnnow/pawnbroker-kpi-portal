@@ -5,8 +5,112 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function verifyAdmin(req: Request, supabaseUrl: string, supabaseAnonKey: string) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) throw new Error("Missing authorization header");
+
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data: { user }, error } = await userClient.auth.getUser();
+  if (error || !user) throw new Error("Invalid authentication");
+
+  const { data: isAdmin, error: roleError } = await userClient.rpc("has_role", {
+    _user_id: user.id,
+    _role: "admin",
+  });
+
+  if (roleError || !isAdmin) throw new Error("Only administrators can create users");
+  return user;
+}
+
+function validateInput(body: { email: string; password: string; user_name: string; group?: number }) {
+  const { email, password, user_name, group } = body;
+  if (!email || !password || !user_name) throw new Error("Email, password, and user_name are required");
+
+  const groupValue = typeof group === "number" ? group : 0;
+  if (groupValue < 0 || groupValue > 5) throw new Error("Group must be between 0 and 5");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Invalid email format");
+  if (password.length < 6) throw new Error("Password must be at least 6 characters");
+  if (!/^[a-zA-Z0-9_-]+$/.test(user_name)) throw new Error("User name can only contain letters, numbers, underscores, and hyphens");
+
+  return groupValue;
+}
+
+async function sendWelcomeEmail(
+  adminClient: any,
+  resendApiKey: string,
+  email: string,
+  user_name: string,
+  password: string,
+  full_name: string,
+) {
+  // Fetch template from DB
+  const { data: tpl } = await adminClient
+    .from("email_templates")
+    .select("subject, body_html, attachment_url, attachment_filename")
+    .eq("template_type", "welcome")
+    .single();
+
+  let subject = "Welcome to Pawnbroker KPI Portal";
+  let html = `<p>Hello ${user_name}, your account has been created. Password: ${password}</p>`;
+  let attachments: any[] = [];
+
+  if (tpl) {
+    const replacePlaceholders = (text: string) =>
+      text
+        .replace(/\{\{user_name\}\}/g, user_name)
+        .replace(/\{\{email\}\}/g, email)
+        .replace(/\{\{password\}\}/g, password)
+        .replace(/\{\{full_name\}\}/g, full_name || "");
+
+    subject = replacePlaceholders(tpl.subject);
+    html = replacePlaceholders(tpl.body_html);
+
+    // Handle attachment
+    if (tpl.attachment_url) {
+      try {
+        const fileRes = await fetch(tpl.attachment_url);
+        if (fileRes.ok) {
+          const arrayBuf = await fileRes.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuf)));
+          attachments.push({
+            filename: tpl.attachment_filename || "attachment",
+            content: base64,
+          });
+        }
+      } catch (e) {
+        console.error("Failed to fetch attachment:", e);
+      }
+    }
+  }
+
+  const emailBody: any = {
+    from: "Pawnbroker KPI Portal <noreply@kpi.pawngorillas.com>",
+    to: [email],
+    subject,
+    html,
+  };
+  if (attachments.length > 0) emailBody.attachments = attachments;
+
+  const emailRes = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${resendApiKey}`,
+    },
+    body: JSON.stringify(emailBody),
+  });
+
+  if (!emailRes.ok) {
+    console.error("Welcome email failed:", await emailRes.text());
+    return false;
+  }
+  return true;
+}
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -16,89 +120,12 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Get the authorization header to verify the caller is an admin
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    await verifyAdmin(req, supabaseUrl, supabaseAnonKey);
 
-    // Create client with user's token to verify admin status
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const body = await req.json();
+    const { email, password, user_name, full_name } = body;
+    const groupValue = validateInput(body);
 
-    // Get the current user
-    const { data: { user: callerUser }, error: userError } = await userClient.auth.getUser();
-    if (userError || !callerUser) {
-      return new Response(
-        JSON.stringify({ error: "Invalid authentication" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check if the caller is an admin using the has_role function
-    const { data: isAdmin, error: roleError } = await userClient.rpc("has_role", {
-      _user_id: callerUser.id,
-      _role: "admin",
-    });
-
-    if (roleError || !isAdmin) {
-      return new Response(
-        JSON.stringify({ error: "Only administrators can create users" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Parse the request body
-    const { email, password, user_name, full_name, group } = await req.json();
-
-    // Validate required fields
-    if (!email || !password || !user_name) {
-      return new Response(
-        JSON.stringify({ error: "Email, password, and user_name are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate group value if provided
-    const groupValue = typeof group === 'number' ? group : 0;
-    if (groupValue < 0 || groupValue > 5) {
-      return new Response(
-        JSON.stringify({ error: "Group must be between 0 and 5" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid email format" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate password length
-    if (password.length < 6) {
-      return new Response(
-        JSON.stringify({ error: "Password must be at least 6 characters" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate user_name format (alphanumeric, underscores, hyphens)
-    const userNameRegex = /^[a-zA-Z0-9_-]+$/;
-    if (!userNameRegex.test(user_name)) {
-      return new Response(
-        JSON.stringify({ error: "User name can only contain letters, numbers, underscores, and hyphens" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Create admin client with service role key
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check if user_name is already taken
@@ -115,14 +142,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create the user in Supabase Auth
+    // Create the user
     const { data: authData, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm the email since admin is creating the account
-      user_metadata: {
-        full_name: full_name || "",
-      },
+      email_confirm: true,
+      user_metadata: { full_name: full_name || "" },
     });
 
     if (createError) {
@@ -132,7 +157,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update the profile with user_name, group, and must_change_password flag
+    // Update profile
     const { error: profileError } = await adminClient
       .from("profiles")
       .update({
@@ -144,7 +169,6 @@ Deno.serve(async (req) => {
       .eq("id", authData.user.id);
 
     if (profileError) {
-      // If profile update fails, try to clean up the created user
       await adminClient.auth.admin.deleteUser(authData.user.id);
       return new Response(
         JSON.stringify({ error: "Failed to update user profile: " + profileError.message }),
@@ -152,41 +176,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Send welcome email (best-effort, don't fail user creation if email fails)
+    // Send welcome email (best-effort)
+    let emailSent = false;
     try {
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
       if (resendApiKey) {
-        const emailRes = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: "Pawnbroker KPI Portal <noreply@kpi.pawngorillas.com>",
-            to: [email],
-            subject: "Welcome to Pawnbroker KPI Portal",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <h2 style="color: #1a1a2e;">Welcome to Pawnbroker KPI Portal</h2>
-                <p>Hello <strong>${user_name}</strong>,</p>
-                <p>Your account has been created. Here are your login credentials:</p>
-                <div style="background: #f4f4f8; border-radius: 8px; padding: 16px; margin: 16px 0;">
-                  <p style="margin: 4px 0;"><strong>Username:</strong> ${user_name}</p>
-                  <p style="margin: 4px 0;"><strong>Email:</strong> ${email}</p>
-                  <p style="margin: 4px 0;"><strong>Temporary Password:</strong> ${password}</p>
-                </div>
-                <p style="color: #e74c3c; font-weight: bold;">You will be required to change your password on first login.</p>
-                <p>If you have any questions, please contact your administrator.</p>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-                <p style="font-size: 12px; color: #888;">Pawnbroker KPI Portal</p>
-              </div>
-            `,
-          }),
-        });
-        if (!emailRes.ok) {
-          console.error("Welcome email failed:", await emailRes.text());
-        }
+        emailSent = await sendWelcomeEmail(adminClient, resendApiKey, email, user_name, password, full_name || "");
       }
     } catch (emailErr) {
       console.error("Welcome email error:", emailErr);
@@ -195,6 +190,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        email_sent: emailSent,
         user: {
           id: authData.user.id,
           email: authData.user.email,
@@ -207,9 +203,11 @@ Deno.serve(async (req) => {
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    const status = errorMessage.includes("authorization") || errorMessage.includes("authentication") ? 401
+      : errorMessage.includes("administrators") ? 403 : 400;
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
