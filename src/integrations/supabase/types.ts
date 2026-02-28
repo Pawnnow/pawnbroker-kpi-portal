@@ -149,6 +149,7 @@ export type Database = {
           field_label: string
           field_name: string
           id: string
+          is_required: boolean
           is_visible: boolean
           updated_at: string
         }
@@ -158,6 +159,7 @@ export type Database = {
           field_label: string
           field_name: string
           id?: string
+          is_required?: boolean
           is_visible?: boolean
           updated_at?: string
         }
@@ -167,6 +169,7 @@ export type Database = {
           field_label?: string
           field_name?: string
           id?: string
+          is_required?: boolean
           is_visible?: boolean
           updated_at?: string
         }

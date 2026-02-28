@@ -7,6 +7,7 @@ interface KpiFieldConfig {
   category: string;
   field_label: string;
   is_visible: boolean;
+  is_required: boolean;
   display_order: number;
 }
 
@@ -31,7 +32,7 @@ export const useVisibleKpiFields = () => {
   const visibleByCategory = (category: string) =>
     allFields
       ?.filter((f) => f.category === category && f.is_visible)
-      ?.map((f) => ({ name: f.field_name, label: f.field_label })) ?? [];
+      ?.map((f) => ({ name: f.field_name, label: f.field_label, isRequired: f.is_required })) ?? [];
 
   const isGridVisible = (gridFieldName: string) =>
     allFields?.find((f) => f.field_name === gridFieldName)?.is_visible ?? true;
@@ -57,6 +58,16 @@ export const useVisibleKpiFields = () => {
       ?.map((f) => AGED_COL_MAP[f.field_name])
       ?.filter(Boolean) ?? Object.values(AGED_COL_MAP);
 
+  const requiredFieldNames =
+    allFields
+      ?.filter((f) => f.is_visible && f.is_required)
+      ?.map((f) => f.field_name) ?? [];
+
+  const requiredFieldLabels =
+    allFields
+      ?.filter((f) => f.is_visible && f.is_required)
+      ?.reduce((acc, f) => { acc[f.field_name] = f.field_label; return acc; }, {} as Record<string, string>) ?? {};
+
   return {
     isLoading,
     error,
@@ -66,5 +77,7 @@ export const useVisibleKpiFields = () => {
     visibleAgedInventoryColumns,
     showAgedInventoryGrid: visibleAgedInventoryColumns.length > 0,
     showPawnBalanceGrid: isGridVisible("pawn_balance_grid"),
+    requiredFieldNames,
+    requiredFieldLabels,
   };
 };

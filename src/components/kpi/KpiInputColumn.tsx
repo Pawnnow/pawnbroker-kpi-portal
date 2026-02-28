@@ -5,6 +5,7 @@ import { useState } from "react";
 interface KpiField {
   name: string;
   label: string;
+  isRequired?: boolean;
 }
 
 interface KpiInputColumnProps {
@@ -43,6 +44,7 @@ const KpiInputColumn = ({ title, fields, values, onChange, category }: KpiInputC
             <div className="flex items-center justify-between gap-4">
               <Label htmlFor={field.name} className="text-sm text-foreground flex-1">
                 {field.label}
+                {field.isRequired && <span className="text-destructive ml-1">*</span>}
               </Label>
               <Input
                 id={field.name}
@@ -50,7 +52,7 @@ const KpiInputColumn = ({ title, fields, values, onChange, category }: KpiInputC
                 inputMode="decimal"
                 value={values[field.name] || ""}
                 onChange={(e) => handleChange(field.name, e.target.value)}
-                className={`w-32 text-right ${errors[field.name] ? "border-destructive" : ""}`}
+                className={`w-32 text-right ${field.isRequired ? "bg-muted" : ""} ${errors[field.name] ? "border-destructive" : ""}`}
                 placeholder="0"
               />
             </div>
