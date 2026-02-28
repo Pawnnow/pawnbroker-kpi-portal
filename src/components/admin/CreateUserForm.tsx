@@ -23,7 +23,7 @@ const CreateUserForm = () => {
   const [group, setGroup] = useState<number>(0);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [createdUser, setCreatedUser] = useState<{ email: string; password: string; user_name: string; group: number } | null>(null);
+  const [createdUser, setCreatedUser] = useState<{ email: string; password: string; user_name: string; group: number; email_sent?: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const generatePassword = () => {
@@ -81,10 +81,10 @@ const CreateUserForm = () => {
         throw new Error(result.error || "Failed to create user");
       }
 
-      setCreatedUser({ email, password, user_name: userName, group });
+      setCreatedUser({ email, password, user_name: userName, group, email_sent: result.email_sent ?? false });
       toast({
         title: "User created successfully",
-        description: `User ${userName} (Group ${group}) has been created. Share the credentials below.`,
+        description: `User ${userName} (Group ${group}) has been created.${result.email_sent ? " Welcome email sent." : " Welcome email could not be sent."}`,
       });
 
       // Reset form except for the success message
@@ -247,6 +247,11 @@ const CreateUserForm = () => {
               <p><strong>Temporary Password:</strong> {createdUser.password}</p>
             </div>
             <p className="text-xs text-green-600 dark:text-green-400">
+              {createdUser.email_sent
+                ? "✅ Welcome email was sent successfully."
+                : "⚠️ Welcome email could not be sent. Share credentials manually."}
+            </p>
+            <p className="text-xs text-muted-foreground">
               Share these credentials securely with the user. They will be prompted to change their password on first login.
             </p>
           </div>
