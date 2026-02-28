@@ -7,9 +7,10 @@ interface DataGridProps {
   rows: string[];
   values: Record<string, string>;
   onChange: (key: string, value: string) => void;
+  requiredRows?: string[];
 }
 
-const DataGrid = ({ title, columns, rows, values, onChange }: DataGridProps) => {
+const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [] }: DataGridProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateNumeric = (value: string): boolean => {
@@ -44,10 +45,13 @@ const DataGrid = ({ title, columns, rows, values, onChange }: DataGridProps) => 
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {rows.map((row) => {
+              const isRequired = requiredRows.includes(row);
+              return (
               <tr key={row}>
                 <td className="border border-border bg-secondary p-2 text-left font-medium text-sm">
                   {row}
+                  {isRequired && <span className="text-destructive ml-1">*</span>}
                 </td>
                 {columns.map((col) => {
                   // Sanitize column name to avoid collisions (e.g., "Total #" vs "Total $")
@@ -55,7 +59,7 @@ const DataGrid = ({ title, columns, rows, values, onChange }: DataGridProps) => 
                   const key = `${row}_${sanitizedCol}`;
                   const hasError = !!errors[key];
                   return (
-                    <td key={col} className="border border-border p-2">
+                    <td key={col} className={`border border-border p-2 ${isRequired ? "bg-muted" : ""}`}>
                       <div className="flex flex-col">
                         <Input
                           type="text"
@@ -73,7 +77,8 @@ const DataGrid = ({ title, columns, rows, values, onChange }: DataGridProps) => 
                   );
                 })}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
