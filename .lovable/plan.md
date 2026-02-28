@@ -1,54 +1,76 @@
 
 
-# Add Mandatory KPI Fields (Admin-Controlled)
+# Three Changes: Group Labels, New Merchandise KPIs, and Mandatory Aged Inventory Rows
 
-## Overview
-Allow admins to mark specific KPI fields as mandatory. On the KPI Upload page, mandatory fields will show a red asterisk next to their label and have a light gray background on their input boxes. When submitting, if any mandatory fields are empty, a dialog will list the missing ones.
+## 1. Rename Group 1 to "Founders" in Dropdowns
 
-## Database Change
+Update the group dropdown in both the Create User form and the Edit User dialog so that Group 1 displays as "Founders" instead of "Group 1". All other groups keep their current labels (Group 0, Group 2, Group 3, etc.).
 
-### Add `is_required` column to `kpi_field_config`
+### Files changed
+- `src/components/admin/CreateUserForm.tsx` -- replace the `[0,1,2,3,4,5].map(...)` with a label map so group 1 renders as "Founders"
+- `src/components/admin/EditUserDialog.tsx` -- same change
+
+---
+
+## 2. Add "Monthly Expenses" and "Net Profit" to Merchandise KPIs
+
+Insert two new fields in the `MERCHANDISE_KPIS` array in `KpiUpload.tsx`, placed after "COGS for Scrap" and before "Merch. Inventory":
+
+- `monthly_expenses` / "Monthly Expenses"
+- `net_profit` / "Net Profit"
+
+### Files changed
+- `src/pages/KpiUpload.tsx` -- add the two entries to the `MERCHANDISE_KPIS` constant
+
+### Database seed needed
+Insert matching rows into `kpi_field_config` so admins can control visibility and mark them required. This will be done via a migration:
 ```sql
-ALTER TABLE public.kpi_field_config
-  ADD COLUMN is_required boolean NOT NULL DEFAULT false;
+INSERT INTO public.kpi_field_config (field_name, category, field_label, is_visible, display_order)
+VALUES
+  ('monthly_expenses', 'merchandise', 'Monthly Expenses', true, 1301),
+  ('net_profit', 'merchandise', 'Net Profit', true, 1302);
 ```
-No new RLS policies needed -- existing policies already allow admin UPDATE and authenticated SELECT.
+(Display order values placed between "cogs_scrap" and "merch_inventory".)
 
-## Admin UI: FieldVisibilityManager
+---
 
-### `src/components/admin/FieldVisibilityManager.tsx`
-- Add a second toggle (or checkbox) labeled "Required" next to each field's existing visibility switch
-- Only show the Required toggle when the field is visible (no point requiring a hidden field)
-- Add a `toggleRequired` function that updates `is_required` via Supabase and optimistically updates the query cache
-- Update the category summary line to also show required count, e.g. "12/16 visible, 3 required"
+## 3. Make Aged Inventory Rows Configurable as Mandatory
 
-## Hook: useKpiFieldConfig
+Allow admins to designate entire aged inventory rows (e.g., "0-90 Days") as mandatory. When a row is mandatory, at minimum the "Total $" cell for that row must be filled before submission.
 
-### `src/hooks/useKpiFieldConfig.ts`
-- Add `is_required` to the `KpiFieldConfig` interface
-- In `useVisibleKpiFields`, update the return shape for `pawnKpis`, `merchandiseKpis`, `marketingKpis` to include `isRequired` in each field object: `{ name, label, isRequired }`
-- Add a helper `requiredFieldNames` that returns a flat list of all visible + required field names for validation
+### Database change
+Add rows to `kpi_field_config` for each aged inventory row (category: `aged_inventory_row`). These use the existing `is_required` and `is_visible` columns:
 
-## KPI Upload Page: Visual Indicators
+```sql
+INSERT INTO public.kpi_field_config (field_name, category, field_label, is_visible, is_required, display_order)
+VALUES
+  ('aged_row_0_90', 'aged_inventory_row', '0-90 Days', true, false, 5001),
+  ('aged_row_91_120', 'aged_inventory_row', '91-120 Days', true, false, 5002),
+  ('aged_row_121_180', 'aged_inventory_row', '121-180 Days', true, false, 5003),
+  ('aged_row_181_210', 'aged_inventory_row', '181-210 Days', true, false, 5004),
+  ('aged_row_211_365', 'aged_inventory_row', '211-365 Days', true, false, 5005),
+  ('aged_row_365_plus', 'aged_inventory_row', '365+ Days', true, false, 5006);
+```
 
-### `src/components/kpi/KpiInputColumn.tsx`
-- Accept an optional `requiredFields` set (or add `isRequired` to the `KpiField` interface)
-- For required fields:
-  - Append a red asterisk (`<span className="text-red-500">*</span>`) after the label text
-  - Add `bg-gray-100` (light mode) / `bg-gray-800` (dark mode) class to the Input component
+### Admin UI
+- `src/components/admin/FieldVisibilityManager.tsx` -- add "Aged Inventory Rows" as a new category section. Admins can toggle "Required" on each row. The "Visible" toggle is kept but mainly for consistency.
+- `src/hooks/useKpiFieldConfig.ts` -- add a `CATEGORY_LABELS` entry and expose `requiredAgedRows` (list of row labels that are required) from `useVisibleKpiFields`
 
-### `src/pages/KpiUpload.tsx`
-- Pass `isRequired` info through to `KpiInputColumn` for each category
-- In `handleSubmit`, before proceeding:
-  1. Collect all visible+required field names from the hook
-  2. Check which ones have empty values
-  3. If any are missing, show an alert dialog: "Your submission is missing values for: [list of missing field labels]."
-  4. Block submission until resolved
+### Upload page validation
+- `src/pages/KpiUpload.tsx` -- in the submit handler, check each required aged inventory row to ensure its "Total $" cell (key: `{row}_Total Dollar`) has a value. Missing rows are included in the existing missing-fields alert dialog.
+- `src/components/kpi/DataGrid.tsx` -- accept an optional `requiredRows` prop. For required rows, highlight the row label with a red asterisk and apply `bg-muted` to cells in that row.
 
-## Files Modified
-1. **Database migration** -- add `is_required` column
-2. **`src/hooks/useKpiFieldConfig.ts`** -- add `is_required` to interface and return objects
-3. **`src/components/admin/FieldVisibilityManager.tsx`** -- add Required toggle per field
-4. **`src/components/kpi/KpiInputColumn.tsx`** -- red asterisk + gray background for required fields
-5. **`src/pages/KpiUpload.tsx`** -- validation logic + missing-values dialog
+---
+
+## Summary of all files touched
+
+| File | Changes |
+|------|---------|
+| `src/components/admin/CreateUserForm.tsx` | Group 1 label -> "Founders" |
+| `src/components/admin/EditUserDialog.tsx` | Group 1 label -> "Founders" |
+| `src/pages/KpiUpload.tsx` | Add 2 merchandise fields; add aged row validation |
+| `src/hooks/useKpiFieldConfig.ts` | Expose `requiredAgedRows` |
+| `src/components/admin/FieldVisibilityManager.tsx` | Add aged inventory row category |
+| `src/components/kpi/DataGrid.tsx` | Accept `requiredRows`, show asterisk + gray bg |
+| Database migration | Insert 8 new `kpi_field_config` rows |
 
