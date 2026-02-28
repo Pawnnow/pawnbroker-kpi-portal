@@ -144,6 +144,7 @@ const KpiUpload = () => {
     showPawnBalanceGrid,
     requiredFieldNames,
     requiredFieldLabels,
+    requiredAgedRows,
     isLoading: fieldConfigLoading,
   } = useVisibleKpiFields();
 
@@ -401,8 +402,20 @@ const KpiUpload = () => {
     // Check required fields
     const allValues = { ...pawnValues, ...merchandiseValues, ...marketingValues };
     const missing = requiredFieldNames.filter((name) => !allValues[name]?.trim());
-    if (missing.length > 0) {
-      setMissingFieldLabels(missing.map((name) => requiredFieldLabels[name] || name));
+
+    // Check required aged inventory rows (Total $ cell must have a value)
+    const missingAgedRows = requiredAgedRows.filter((rowLabel) => {
+      const key = `${rowLabel}_Total Dollar`;
+      return !agedInventoryValues[key]?.trim();
+    });
+
+    const allMissing = [
+      ...missing.map((name) => requiredFieldLabels[name] || name),
+      ...missingAgedRows.map((row) => `Aged Inventory: ${row} (Total $)`),
+    ];
+
+    if (allMissing.length > 0) {
+      setMissingFieldLabels(allMissing);
       setMissingFieldsDialogOpen(true);
       return;
     }
@@ -678,6 +691,7 @@ const KpiUpload = () => {
                     rows={AGED_INVENTORY_ROWS}
                     values={agedInventoryValues}
                     onChange={(key, value) => setAgedInventoryValues({ ...agedInventoryValues, [key]: value })}
+                    requiredRows={requiredAgedRows}
                   />
                 )}
                 {showPawnBalanceGrid && (

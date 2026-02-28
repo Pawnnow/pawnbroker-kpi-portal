@@ -60,13 +60,29 @@ export const useVisibleKpiFields = () => {
 
   const requiredFieldNames =
     allFields
-      ?.filter((f) => f.is_visible && f.is_required)
+      ?.filter((f) => f.is_visible && f.is_required && f.category !== "aged_inventory_row")
       ?.map((f) => f.field_name) ?? [];
 
   const requiredFieldLabels =
     allFields
-      ?.filter((f) => f.is_visible && f.is_required)
+      ?.filter((f) => f.is_visible && f.is_required && f.category !== "aged_inventory_row")
       ?.reduce((acc, f) => { acc[f.field_name] = f.field_label; return acc; }, {} as Record<string, string>) ?? {};
+
+  // Map aged_inventory_row field_names to their row labels when required
+  const AGED_ROW_MAP: Record<string, string> = {
+    aged_row_0_90: "0–90 Days",
+    aged_row_91_120: "91–120 Days",
+    aged_row_121_180: "121–180 Days",
+    aged_row_181_210: "181–210 Days",
+    aged_row_211_365: "211–365 Days",
+    aged_row_365_plus: "365+ Days",
+  };
+
+  const requiredAgedRows =
+    allFields
+      ?.filter((f) => f.category === "aged_inventory_row" && f.is_visible && f.is_required)
+      ?.map((f) => AGED_ROW_MAP[f.field_name])
+      ?.filter(Boolean) ?? [];
 
   return {
     isLoading,
@@ -79,5 +95,6 @@ export const useVisibleKpiFields = () => {
     showPawnBalanceGrid: isGridVisible("pawn_balance_grid"),
     requiredFieldNames,
     requiredFieldLabels,
+    requiredAgedRows,
   };
 };

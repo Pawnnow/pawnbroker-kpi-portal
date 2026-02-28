@@ -15,9 +15,10 @@ const CATEGORY_LABELS: Record<string, string> = {
   marketing: "Marketing KPIs",
   aged_inventory: "Aged Inventory Columns",
   pawn_balance: "Pawn Balance Breakdown Grid",
+  aged_inventory_row: "Aged Inventory Rows (Mandatory)",
 };
 
-const CATEGORY_ORDER = ["pawn", "merchandise", "marketing", "aged_inventory", "pawn_balance"];
+const CATEGORY_ORDER = ["pawn", "merchandise", "marketing", "aged_inventory", "pawn_balance", "aged_inventory_row"];
 
 const FieldVisibilityManager = () => {
   const { data: fields, isLoading } = useKpiFieldConfig();
