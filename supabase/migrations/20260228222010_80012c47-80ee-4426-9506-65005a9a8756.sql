@@ -1,0 +1,1 @@
+ALTER TABLE public.kpi_field_config ADD COLUMN is_required boolean NOT NULL DEFAULT false;

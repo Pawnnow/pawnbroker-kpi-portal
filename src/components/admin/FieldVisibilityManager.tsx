@@ -46,7 +46,23 @@ const FieldVisibilityManager = () => {
     }
 
     queryClient.setQueryData(["kpi-field-config"], (old: any[] | undefined) =>
-      old?.map((f) => (f.field_name === fieldName ? { ...f, is_visible: newValue } : f))
+      old?.map((f) => (f.field_name === fieldName ? { ...f, is_visible: newValue, ...(newValue === false && { is_required: false }) } : f))
+    );
+  };
+
+  const toggleRequired = async (fieldName: string, newValue: boolean) => {
+    const { error } = await supabase
+      .from("kpi_field_config")
+      .update({ is_required: newValue } as any)
+      .eq("field_name", fieldName);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to update field requirement.", variant: "destructive" });
+      return;
+    }
+
+    queryClient.setQueryData(["kpi-field-config"], (old: any[] | undefined) =>
+      old?.map((f) => (f.field_name === fieldName ? { ...f, is_required: newValue } : f))
     );
   };
 
@@ -101,6 +117,7 @@ const FieldVisibilityManager = () => {
           if (!categoryFields) return null;
 
           const visibleCount = categoryFields.filter((f) => f.is_visible).length;
+          const requiredCount = categoryFields.filter((f) => f.is_visible && f.is_required).length;
           const allVisible = visibleCount === categoryFields.length;
 
           return (
@@ -112,7 +129,7 @@ const FieldVisibilityManager = () => {
                     {CATEGORY_LABELS[category] || category}
                   </span>
                   <span className="text-xs text-muted-foreground ml-2">
-                    {visibleCount}/{categoryFields.length} visible
+                    {visibleCount}/{categoryFields.length} visible{requiredCount > 0 && `, ${requiredCount} required`}
                   </span>
                 </CollapsibleTrigger>
                 <div className="flex items-center gap-2">
@@ -131,10 +148,24 @@ const FieldVisibilityManager = () => {
                       className="flex items-center justify-between py-1"
                     >
                       <Label className="text-sm font-normal">{field.field_label}</Label>
-                      <Switch
-                        checked={field.is_visible}
-                        onCheckedChange={(checked) => toggleField(field.field_name, checked)}
-                      />
+                      <div className="flex items-center gap-4">
+                        {field.is_visible && (
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs text-muted-foreground">Required</Label>
+                            <Switch
+                              checked={field.is_required}
+                              onCheckedChange={(checked) => toggleRequired(field.field_name, checked)}
+                            />
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-muted-foreground">Visible</Label>
+                          <Switch
+                            checked={field.is_visible}
+                            onCheckedChange={(checked) => toggleField(field.field_name, checked)}
+                          />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

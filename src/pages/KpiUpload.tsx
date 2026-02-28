@@ -16,6 +16,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import MonthSelector from "@/components/kpi/MonthSelector";
 import KpiInputColumn from "@/components/kpi/KpiInputColumn";
@@ -117,7 +126,8 @@ const KpiUpload = () => {
   const [availableMonths, setAvailableMonths] = useState<{ year: number; month: number }[]>([]);
   const [selectedExportMonths, setSelectedExportMonths] = useState<Set<string>>(new Set());
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
-  
+  const [missingFieldsDialogOpen, setMissingFieldsDialogOpen] = useState(false);
+  const [missingFieldLabels, setMissingFieldLabels] = useState<string[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
@@ -130,6 +140,8 @@ const KpiUpload = () => {
     visibleAgedInventoryColumns,
     showAgedInventoryGrid,
     showPawnBalanceGrid,
+    requiredFieldNames,
+    requiredFieldLabels,
     isLoading: fieldConfigLoading,
   } = useVisibleKpiFields();
 
@@ -381,6 +393,15 @@ const KpiUpload = () => {
         description: "Please select a store location.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Check required fields
+    const allValues = { ...pawnValues, ...merchandiseValues, ...marketingValues };
+    const missing = requiredFieldNames.filter((name) => !allValues[name]?.trim());
+    if (missing.length > 0) {
+      setMissingFieldLabels(missing.map((name) => requiredFieldLabels[name] || name));
+      setMissingFieldsDialogOpen(true);
       return;
     }
 
@@ -733,6 +754,20 @@ const KpiUpload = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Missing Required Fields Dialog */}
+      <AlertDialog open={missingFieldsDialogOpen} onOpenChange={setMissingFieldsDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Missing Required Fields</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your submission is missing values for: {missingFieldLabels.join(", ")}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setMissingFieldsDialogOpen(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
