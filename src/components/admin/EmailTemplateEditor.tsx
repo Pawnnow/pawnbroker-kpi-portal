@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Save, Eye, EyeOff, Upload, X, Loader2 } from "lucide-react";
+import { Mail, Save, Upload, X, Loader2 } from "lucide-react";
 
 interface EmailTemplate {
   id: string;
@@ -26,6 +26,29 @@ const PLACEHOLDERS = [
   { key: "{{full_name}}", desc: "Full name" },
 ];
 
+const htmlToPlainText = (html: string): string => {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
+const plainTextToHtml = (text: string): string => {
+  return text
+    .split("\n")
+    .map((line) => (line.trim() ? `<p>${line}</p>` : ""))
+    .filter(Boolean)
+    .join("\n");
+};
+
 const EmailTemplateEditor = () => {
   const { toast } = useToast();
   const [template, setTemplate] = useState<EmailTemplate | null>(null);
@@ -33,7 +56,6 @@ const EmailTemplateEditor = () => {
   const [bodyHtml, setBodyHtml] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
   const [attachmentFilename, setAttachmentFilename] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -56,7 +78,7 @@ const EmailTemplateEditor = () => {
       const t = data as any as EmailTemplate;
       setTemplate(t);
       setSubject(t.subject);
-      setBodyHtml(t.body_html);
+      setBodyHtml(htmlToPlainText(t.body_html));
       setAttachmentUrl(t.attachment_url);
       setAttachmentFilename(t.attachment_filename);
     } catch (err: any) {
@@ -80,7 +102,7 @@ const EmailTemplateEditor = () => {
         .from("email_templates" as any)
         .update({
           subject,
-          body_html: bodyHtml,
+          body_html: plainTextToHtml(bodyHtml),
           attachment_url: attachmentUrl,
           attachment_filename: attachmentFilename,
           updated_by: user?.id,
@@ -145,14 +167,6 @@ const EmailTemplateEditor = () => {
     setAttachmentFilename(null);
   };
 
-  const getPreviewHtml = () => {
-    return bodyHtml
-      .replace(/\{\{user_name\}\}/g, "john_doe")
-      .replace(/\{\{email\}\}/g, "john@example.com")
-      .replace(/\{\{password\}\}/g, "TempPass123")
-      .replace(/\{\{full_name\}\}/g, "John Doe");
-  };
-
   if (isLoading) {
     return (
       <Card>
@@ -207,29 +221,16 @@ const EmailTemplateEditor = () => {
           />
         </div>
 
-        {/* Body */}
+        {/* Message */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="email-body">Body (HTML)</Label>
-            <Button variant="ghost" size="sm" onClick={() => setShowPreview(!showPreview)}>
-              {showPreview ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
-              {showPreview ? "Edit" : "Preview"}
-            </Button>
-          </div>
-          {showPreview ? (
-            <div
-              className="border rounded-md p-4 bg-background min-h-[200px] prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: getPreviewHtml() }}
-            />
-          ) : (
-            <Textarea
-              id="email-body"
-              value={bodyHtml}
-              onChange={(e) => setBodyHtml(e.target.value)}
-              className="font-mono text-xs min-h-[200px]"
-              placeholder="<div>...</div>"
-            />
-          )}
+          <Label htmlFor="email-body">Message</Label>
+          <Textarea
+            id="email-body"
+            value={bodyHtml}
+            onChange={(e) => setBodyHtml(e.target.value)}
+            className="min-h-[200px]"
+            placeholder="Type your welcome message here..."
+          />
         </div>
 
         {/* Attachment */}
