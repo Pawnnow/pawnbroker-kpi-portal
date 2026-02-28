@@ -19,11 +19,12 @@ const CreateUserForm = () => {
   const [email, setEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [fullName, setFullName] = useState("");
+  const [memberNumber, setMemberNumber] = useState("");
   const [password, setPassword] = useState("");
   const [group, setGroup] = useState<number>(0);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [createdUser, setCreatedUser] = useState<{ email: string; password: string; user_name: string; group: number; email_sent?: boolean } | null>(null);
+  const [createdUser, setCreatedUser] = useState<{ email: string; password: string; user_name: string; member_number: string; group: number; email_sent?: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const generatePassword = () => {
@@ -38,7 +39,7 @@ const CreateUserForm = () => {
 
   const copyCredentials = () => {
     if (!createdUser) return;
-    const text = `Email: ${createdUser.email}\nUsername: ${createdUser.user_name}\nGroup: ${createdUser.group}\nTemporary Password: ${createdUser.password}\n\nPlease log in and change your password immediately.`;
+    const text = `Email: ${createdUser.email}\nUsername: ${createdUser.user_name}\nMember Number: ${createdUser.member_number}\nGroup: ${createdUser.group}\nTemporary Password: ${createdUser.password}\n\nPlease log in and change your password immediately.`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -70,6 +71,7 @@ const CreateUserForm = () => {
             password,
             user_name: userName,
             full_name: fullName,
+            member_number: memberNumber,
             group,
           }),
         }
@@ -81,7 +83,7 @@ const CreateUserForm = () => {
         throw new Error(result.error || "Failed to create user");
       }
 
-      setCreatedUser({ email, password, user_name: userName, group, email_sent: result.email_sent ?? false });
+      setCreatedUser({ email, password, user_name: userName, member_number: memberNumber, group, email_sent: result.email_sent ?? false });
       toast({
         title: "User created successfully",
         description: `User ${userName} (Group ${group}) has been created.${result.email_sent ? " Welcome email sent." : " Welcome email could not be sent."}`,
@@ -91,6 +93,7 @@ const CreateUserForm = () => {
       setEmail("");
       setUserName("");
       setFullName("");
+      setMemberNumber("");
       setPassword("");
       setGroup(0);
     } catch (error: any) {
@@ -152,6 +155,18 @@ const CreateUserForm = () => {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="John Smith"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="memberNumber">Member Number *</Label>
+              <Input
+                id="memberNumber"
+                type="text"
+                value={memberNumber}
+                onChange={(e) => setMemberNumber(e.target.value)}
+                placeholder="e.g., MBR001"
+                required
               />
             </div>
 
@@ -243,6 +258,7 @@ const CreateUserForm = () => {
             <div className="text-sm space-y-1 text-green-700 dark:text-green-300">
               <p><strong>Email:</strong> {createdUser.email}</p>
               <p><strong>Username:</strong> {createdUser.user_name}</p>
+              <p><strong>Member Number:</strong> {createdUser.member_number}</p>
               <p><strong>Group:</strong> {createdUser.group}</p>
               <p><strong>Temporary Password:</strong> {createdUser.password}</p>
             </div>

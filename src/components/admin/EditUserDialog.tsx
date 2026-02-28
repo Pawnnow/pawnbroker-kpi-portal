@@ -48,6 +48,7 @@ const EditUserDialog = ({
   const [formData, setFormData] = useState({
     user_name: "",
     full_name: "",
+    member_number: "",
     email: "",
     group: "0",
     is_admin: false,
@@ -60,6 +61,7 @@ const EditUserDialog = ({
       setFormData({
         user_name: user.user_name || "",
         full_name: user.full_name || "",
+        member_number: (user as any).member_number || "",
         email: user.email || "",
         group: String(user.group ?? 0),
         is_admin: user.isAdmin,
@@ -83,6 +85,7 @@ const EditUserDialog = ({
           user_id: user.id,
           user_name: formData.user_name || null,
           full_name: formData.full_name || null,
+          member_number: formData.member_number || null,
           email: formData.email || null,
           group: parseInt(formData.group, 10),
           is_admin: formData.is_admin,
@@ -152,6 +155,18 @@ const EditUserDialog = ({
                   setFormData({ ...formData, full_name: e.target.value })
                 }
                 placeholder="Enter full name"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="member_number">Member Number</Label>
+              <Input
+                id="member_number"
+                value={formData.member_number}
+                onChange={(e) =>
+                  setFormData({ ...formData, member_number: e.target.value })
+                }
+                placeholder="Enter member number"
               />
             </div>
 

@@ -23,6 +23,7 @@ interface UserProfile {
   email: string | null;
   user_name: string | null;
   full_name: string | null;
+  member_number: string | null;
   must_change_password: boolean | null;
   is_frozen: boolean | null;
   group: number | null;

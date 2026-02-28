@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN member_number TEXT UNIQUE;

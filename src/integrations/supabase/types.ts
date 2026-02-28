@@ -218,6 +218,7 @@ export type Database = {
           group: number | null
           id: string
           is_frozen: boolean | null
+          member_number: string | null
           must_change_password: boolean | null
           updated_at: string | null
           user_name: string | null
@@ -229,6 +230,7 @@ export type Database = {
           group?: number | null
           id: string
           is_frozen?: boolean | null
+          member_number?: string | null
           must_change_password?: boolean | null
           updated_at?: string | null
           user_name?: string | null
@@ -240,6 +242,7 @@ export type Database = {
           group?: number | null
           id?: string
           is_frozen?: boolean | null
+          member_number?: string | null
           must_change_password?: boolean | null
           updated_at?: string | null
           user_name?: string | null

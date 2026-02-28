@@ -106,11 +106,11 @@ const Auth = () => {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="identifier">Username or Email</Label>
+                <Label htmlFor="identifier">Email or Member Number</Label>
                 <Input
                   id="identifier"
                   type="text"
-                  placeholder="Enter your username or email"
+                  placeholder="Enter your email or member number"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   disabled={isLoading}

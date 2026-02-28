@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse the request body
-    const { user_id, email, user_name, full_name, group, is_admin } = await req.json();
+    const { user_id, email, user_name, full_name, member_number, group, is_admin } = await req.json();
 
     // Validate required fields
     if (!user_id) {
@@ -116,6 +116,23 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Check if member_number is already taken by another user
+    if (member_number) {
+      const { data: existingMember } = await adminClient
+        .from("profiles")
+        .select("id")
+        .eq("member_number", member_number)
+        .neq("id", user_id)
+        .single();
+
+      if (existingMember) {
+        return new Response(
+          JSON.stringify({ error: "Member number is already taken" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Update email in Auth if provided
     if (email) {
       const { error: emailError } = await adminClient.auth.admin.updateUserById(user_id, {
@@ -136,6 +153,7 @@ Deno.serve(async (req) => {
     const profileUpdate: Record<string, any> = {};
     if (user_name !== undefined) profileUpdate.user_name = user_name;
     if (full_name !== undefined) profileUpdate.full_name = full_name;
+    if (member_number !== undefined) profileUpdate.member_number = member_number;
     if (group !== undefined) profileUpdate.group = typeof group === 'number' ? group : parseInt(group, 10);
     if (email !== undefined) profileUpdate.email = email;
 
