@@ -182,7 +182,7 @@ const EditUserDialog = ({
                 <SelectContent>
                   {[0, 1, 2, 3, 4, 5].map((g) => (
                     <SelectItem key={g} value={String(g)}>
-                      Group {g}
+                      {g === 1 ? "Founders" : `Group ${g}`}
                     </SelectItem>
                   ))}
                 </SelectContent>

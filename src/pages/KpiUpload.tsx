@@ -72,6 +72,8 @@ const MERCHANDISE_KPIS = [
   { name: "gross_profits", label: "Gross Profits" },
   { name: "scrap_sales", label: "Scrap Sales" },
   { name: "cogs_scrap", label: "COGS for Scrap" },
+  { name: "monthly_expenses", label: "Monthly Expenses" },
+  { name: "net_profit", label: "Net Profit" },
   { name: "merch_inventory", label: "Merch. Inventory" },
   { name: "buy_inventory", label: "Buy Inventory" },
   { name: "layaway_inventory", label: "Layaway Inventory" },
