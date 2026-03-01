@@ -6,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const getGroupLabel = (group: number | null): string => {
+  const g = group ?? 0;
+  return g === 1 ? "Founders" : `Group ${g}`;
+};
+
 const getMonthName = (month: number): string => {
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return months[month - 1] || "";
@@ -326,7 +331,7 @@ serve(async (req) => {
               user_id: String(row.user_id),
               user_name: userName,
               user_email: profile?.email || 'Unknown',
-              group: profile?.group ?? null,
+              group: getGroupLabel(profile?.group ?? null),
               ...(loc && { store_name: loc.store_name })
             })
           };
@@ -371,7 +376,7 @@ serve(async (req) => {
             user_id: String(row.user_id),
             user_name: userName,
             user_email: profile?.email || 'Unknown',
-            group: profile?.group ?? null,
+            group: getGroupLabel(profile?.group ?? null),
             ...(loc && { store_name: loc.store_name })
           })
         };
