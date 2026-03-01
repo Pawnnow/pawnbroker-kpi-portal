@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getGroupLabel } from "@/lib/groupLabel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -236,7 +237,7 @@ const UserList = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {user.group ?? 0}
+                          {getGroupLabel(user.group)}
                         </Badge>
                       </TableCell>
                       <TableCell>

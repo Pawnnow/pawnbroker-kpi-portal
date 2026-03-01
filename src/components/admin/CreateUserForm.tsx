@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getGroupLabel } from "@/lib/groupLabel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,7 @@ const CreateUserForm = () => {
 
   const copyCredentials = () => {
     if (!createdUser) return;
-    const text = `Email: ${createdUser.email}\nUsername: ${createdUser.user_name}\nMember Number: ${createdUser.member_number}\nGroup: ${createdUser.group}\nTemporary Password: ${createdUser.password}\n\nPlease log in and change your password immediately.`;
+    const text = `Email: ${createdUser.email}\nUsername: ${createdUser.user_name}\nMember Number: ${createdUser.member_number}\nGroup: ${getGroupLabel(createdUser.group)}\nTemporary Password: ${createdUser.password}\n\nPlease log in and change your password immediately.`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -259,7 +260,7 @@ const CreateUserForm = () => {
               <p><strong>Email:</strong> {createdUser.email}</p>
               <p><strong>Username:</strong> {createdUser.user_name}</p>
               <p><strong>Member Number:</strong> {createdUser.member_number}</p>
-              <p><strong>Group:</strong> {createdUser.group}</p>
+              <p><strong>Group:</strong> {getGroupLabel(createdUser.group)}</p>
               <p><strong>Temporary Password:</strong> {createdUser.password}</p>
             </div>
             <p className="text-xs text-green-600 dark:text-green-400">
