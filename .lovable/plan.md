@@ -1,28 +1,35 @@
 
 
-# Show "Founders" in API Export Data
+# Remove Session Timeout + Add Auto-Save for KPI Data Entry
 
-## Problem
-The API export (`kpi-export` backend function) outputs the raw group number (e.g., `1`) instead of the label `"Founders"` for group 1 users. Since this data feeds into Excel dashboards, the group column should show human-readable labels.
-
-## Solution
-Add a `getGroupLabel` helper directly in the `kpi-export` edge function (since it can't import frontend code) and apply it in both the pivot and long export formats.
+## Overview
+We'll remove the inactivity timeout entirely so users are never logged out due to inactivity. As a safety net, we'll also add auto-save functionality to the KPI upload page so users never lose their work.
 
 ## Changes
 
-### 1. Update `supabase/functions/kpi-export/index.ts`
-- Add a small helper function at the top:
-  ```typescript
-  const getGroupLabel = (group: number | null): string => {
-    const g = group ?? 0;
-    return g === 1 ? "Founders" : `Group ${g}`;
-  };
-  ```
-- Update both pivot format (line 329) and long format (line 374) to output `group: getGroupLabel(profile?.group ?? null)` instead of the raw number.
+### 1. Remove the activity timeout entirely
+- Delete the `useActivityTimeout` hook usage from `ProtectedRoute.tsx`
+- Remove or keep the `src/hooks/useActivityTimeout.ts` file (can be deleted since it won't be used)
+- Users will stay logged in until they manually log out or their session token expires naturally
 
-### 2. Redeploy the edge function
-The `kpi-export` function will need to be redeployed for the change to take effect.
+### 2. Add auto-save to KPI Upload page
+As a safety net (e.g., browser crash, accidental tab close), save form inputs to the browser's local storage as the user types:
+- Store draft values in `localStorage` keyed by user ID + month + year + location
+- Restore drafts automatically when the user returns to the upload page
+- Clear the draft after a successful submission
+- Show a small indicator ("Draft saved") so users know their work is preserved
 
-## Impact
-- API responses will show `"Founders"` for group 1 and `"Group 0"`, `"Group 2"`, etc. for others
-- Excel dashboards using AVERAGEIFS on the group column will need to reference `"Founders"` instead of `1` -- worth noting if existing dashboards rely on numeric group values
+## Technical Details
+
+**Files to modify:**
+- `src/components/ProtectedRoute.tsx` -- remove the `useActivityTimeout` import and hook call
+- `src/pages/KpiUpload.tsx` -- add auto-save logic using `localStorage`
+
+**Files to delete (optional cleanup):**
+- `src/hooks/useActivityTimeout.ts` -- no longer needed
+
+**Auto-save key format:**
+`kpi-draft-{userId}-{year}-{month}-{locationId}`
+
+This stores the current form values as JSON. On page load, if a matching draft exists, the values are restored and a toast notifies the user ("Draft restored").
+
