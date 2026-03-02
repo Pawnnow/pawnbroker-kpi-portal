@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import AccountFrozenScreen from "@/components/AccountFrozenScreen";
-import { useActivityTimeout } from "@/hooks/useActivityTimeout";
+
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -30,11 +30,6 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
   const navigate = useNavigate();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Activity-based session timeout (30 min for users, 180 min for admins)
-  useActivityTimeout({
-    isAuthenticated: authState.isAuthenticated === true,
-    userId: authState.userId,
-  });
 
   // Helper to safely clear the auth timeout
   const clearAuthTimeout = useCallback(() => {

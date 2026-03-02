@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,7 +36,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
 import { useUserLocations } from "@/hooks/useUserLocations";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Download, BarChart3, Shield, Store } from "lucide-react";
+import { LogOut, Download, BarChart3, Shield, Store, Save } from "lucide-react";
 import * as XLSX from "xlsx";
 
 const PAWN_KPIS = [
@@ -130,6 +130,9 @@ const KpiUpload = () => {
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
   const [missingFieldsDialogOpen, setMissingFieldsDialogOpen] = useState(false);
   const [missingFieldLabels, setMissingFieldLabels] = useState<string[]>([]);
+  const [draftStatus, setDraftStatus] = useState<string | null>(null);
+  const draftTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
@@ -147,6 +150,77 @@ const KpiUpload = () => {
     requiredAgedRows,
     isLoading: fieldConfigLoading,
   } = useVisibleKpiFields();
+
+  // Get user ID on mount
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setUserId(data.user.id);
+    });
+  }, []);
+
+  // Draft key helper
+  const getDraftKey = useCallback(() => {
+    if (!userId || !year || !month) return null;
+    const locPart = selectedLocationId || "default";
+    return `kpi-draft-${userId}-${year}-${month}-${locPart}`;
+  }, [userId, year, month, selectedLocationId]);
+
+  // Auto-save draft when values change (debounced)
+  useEffect(() => {
+    const key = getDraftKey();
+    if (!key) return;
+
+    // Only save if there's actual data
+    const hasData = [pawnValues, merchandiseValues, marketingValues, agedInventoryValues, pawnBalanceValues]
+      .some(v => Object.keys(v).length > 0);
+    if (!hasData) return;
+
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    draftTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(key, JSON.stringify({
+          pawnValues, merchandiseValues, marketingValues,
+          agedInventoryValues, pawnBalanceValues,
+        }));
+        setDraftStatus("Draft saved");
+        setTimeout(() => setDraftStatus(null), 2000);
+      } catch (e) {
+        console.error("Failed to save draft:", e);
+      }
+    }, 1000);
+
+    return () => { if (draftTimerRef.current) clearTimeout(draftTimerRef.current); };
+  }, [pawnValues, merchandiseValues, marketingValues, agedInventoryValues, pawnBalanceValues, getDraftKey]);
+
+  // Restore draft when year/month/location changes
+  useEffect(() => {
+    const key = getDraftKey();
+    if (!key) return;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const draft = JSON.parse(saved);
+        setPawnValues(draft.pawnValues || {});
+        setMerchandiseValues(draft.merchandiseValues || {});
+        setMarketingValues(draft.marketingValues || {});
+        setAgedInventoryValues(draft.agedInventoryValues || {});
+        setPawnBalanceValues(draft.pawnBalanceValues || {});
+        toast({ title: "Draft restored", description: "Previously saved inputs have been loaded." });
+      }
+    } catch (e) {
+      console.error("Failed to restore draft:", e);
+    }
+  // Only run when the key identity changes, not on every value update
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, year, month, selectedLocationId]);
+
+  // Clear draft helper
+  const clearDraft = useCallback(() => {
+    const key = getDraftKey();
+    if (key) {
+      try { localStorage.removeItem(key); } catch {}
+    }
+  }, [getDraftKey]);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2022 + 10 }, (_, i) => 2022 + i);
@@ -213,6 +287,7 @@ const KpiUpload = () => {
   };
 
   const handleClear = () => {
+    clearDraft();
     setYear(null);
     setMonth(null);
     setPawnValues({});
@@ -709,7 +784,13 @@ const KpiUpload = () => {
 
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-4">
+          <div className="flex items-center justify-end gap-4">
+            {draftStatus && (
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                <Save className="w-3 h-3" />
+                {draftStatus}
+              </span>
+            )}
             <Button variant="outline" onClick={handleClear} disabled={isSubmitting}>
               Clear
             </Button>
