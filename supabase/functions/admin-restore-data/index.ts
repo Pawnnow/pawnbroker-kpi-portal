@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
       const { error: upsertError } = await adminClient
         .from("kpi_entries")
         .upsert(batch, {
-          onConflict: "user_id,year,month,field_name",
+          onConflict: "user_id,location_id,year,month,field_name",
           ignoreDuplicates: false,
         });
 
