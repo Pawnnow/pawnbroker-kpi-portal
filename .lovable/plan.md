@@ -1,24 +1,22 @@
 
-# Fix: "Total $" False Validation Failure
+# Add Location Fields to CSV Backup
 
-## Root Cause
+## Problem
+The CSV backup export does not include any location information. Since multiple locations share the same `user_id`, there is no way to distinguish which KPI entries belong to which store in the backup file. This also means restoring from a backup cannot properly re-associate data with the correct location.
 
-The `aged_col_total_dollar` field has `category = "aged_inventory"` and `is_required = true` in the database. The `requiredFieldNames` computation in `useKpiFieldConfig.ts` only excludes `category !== "aged_inventory_row"` -- it does NOT exclude `"aged_inventory"` columns. So `aged_col_total_dollar` ends up in the regular required fields list and gets validated against pawn/merchandise/marketing values, where it will never be found.
+## Changes
 
-The aged inventory grid has its own separate validation (checking `agedInventoryValues` with the correct key), so the column-level required flag should not be checked as a regular field.
+### 1. Update CSV backup download (`src/pages/AdminDashboard.tsx`)
+- Add `location_id`, `store_code`, and `store_name` to the `csvHeaders` array
+- These fields are already available on each entry from `useAdminKpiData` -- no additional data fetching needed
 
-## Fix
+### 2. Update CSV restore function (`supabase/functions/admin-restore-data/index.ts`)
+- Add `location_id` to the parsed CSV fields so that restored data is associated with the correct location
+- Keep `location_id` optional (null) for backward compatibility with older backups that lack the column
 
-**File: `src/hooks/useKpiFieldConfig.ts`** (lines 61-69)
-
-Update both `requiredFieldNames` and `requiredFieldLabels` filters to also exclude the `"aged_inventory"` category:
-
-```ts
-// Before
-f.category !== "aged_inventory_row"
-
-// After
-f.category !== "aged_inventory_row" && f.category !== "aged_inventory"
+## Result
+Backup CSVs will contain columns like:
 ```
-
-This is a two-line change (one in each filter) that prevents aged inventory column configs from leaking into the regular field validation, while preserving the dedicated grid-level validation that already handles the "365+ Days / Total $" requirement correctly.
+user_id, user_email, year, month, category, field_name, field_label, field_value, location_id, store_code, store_name
+```
+The restore function will use `location_id` when present, preserving multi-location data integrity through backup/restore cycles.
