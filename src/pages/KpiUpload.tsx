@@ -767,6 +767,7 @@ const KpiUpload = () => {
                     values={agedInventoryValues}
                     onChange={(key, value) => setAgedInventoryValues({ ...agedInventoryValues, [key]: value })}
                     requiredRows={requiredAgedRows}
+                    requiredColumn="Total $"
                   />
                 )}
                 {showPawnBalanceGrid && (
