@@ -246,7 +246,7 @@ const AdminDashboard = () => {
         return;
       }
 
-      const csvHeaders = ["user_id", "user_email", "year", "month", "category", "field_name", "field_label", "field_value"];
+      const csvHeaders = ["user_id", "user_email", "year", "month", "category", "field_name", "field_label", "field_value", "location_id", "store_code", "store_name"];
       const csvRows = kpiData.map(entry => 
         csvHeaders.map(h => {
           const val = String((entry as any)[h] ?? "");
