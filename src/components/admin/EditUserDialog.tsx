@@ -21,6 +21,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { getGroupLabel } from "@/lib/groupLabel";
 
 interface EditUserDialogProps {
   open: boolean;
@@ -197,7 +198,7 @@ const EditUserDialog = ({
                 <SelectContent>
                   {[0, 1, 2, 3, 4, 5].map((g) => (
                     <SelectItem key={g} value={String(g)}>
-                      {g === 1 ? "Founders" : `Group ${g}`}
+                      {getGroupLabel(g)}
                     </SelectItem>
                   ))}
                 </SelectContent>
