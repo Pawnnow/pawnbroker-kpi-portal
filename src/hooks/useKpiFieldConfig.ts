@@ -60,12 +60,12 @@ export const useVisibleKpiFields = () => {
 
   const requiredFieldNames =
     allFields
-      ?.filter((f) => f.is_visible && f.is_required && f.category !== "aged_inventory_row")
+      ?.filter((f) => f.is_visible && f.is_required && f.category !== "aged_inventory_row" && f.category !== "aged_inventory")
       ?.map((f) => f.field_name) ?? [];
 
   const requiredFieldLabels =
     allFields
-      ?.filter((f) => f.is_visible && f.is_required && f.category !== "aged_inventory_row")
+      ?.filter((f) => f.is_visible && f.is_required && f.category !== "aged_inventory_row" && f.category !== "aged_inventory")
       ?.reduce((acc, f) => { acc[f.field_name] = f.field_label; return acc; }, {} as Record<string, string>) ?? {};
 
   // Map aged_inventory_row field_names to their row labels when required
