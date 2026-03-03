@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
         row[h] = values[idx];
       });
 
-      entries.push({
+      const entry: Record<string, any> = {
         user_id: row.user_id,
         year: parseInt(row.year),
         month: parseInt(row.month),
@@ -97,7 +97,12 @@ Deno.serve(async (req) => {
         field_name: row.field_name,
         field_label: row.field_label,
         field_value: row.field_value || null,
-      });
+      };
+      // Include location_id if present (backward compatible with older backups)
+      if (headers.includes("location_id") && row.location_id) {
+        entry.location_id = row.location_id;
+      }
+      entries.push(entry);
     }
 
     if (entries.length === 0) {
