@@ -180,7 +180,7 @@ const CreateUserForm = () => {
                 <SelectContent>
                   {[0, 1, 2, 3, 4, 5].map((g) => (
                     <SelectItem key={g} value={g.toString()}>
-                      {g === 1 ? "Founders" : `Group ${g}`}
+                      {getGroupLabel(g)}
                     </SelectItem>
                   ))}
                 </SelectContent>
