@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Auth from "./pages/Auth";
 import KpiUpload from "./pages/KpiUpload";
 import KpiDashboard from "./pages/KpiDashboard";
+import ClientDashboard from "./pages/ClientDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ChangePassword from "./pages/ChangePassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -27,6 +28,14 @@ const App = () => (
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <ClientDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/charts"
             element={
               <AdminRoute>
                 <KpiDashboard />
