@@ -435,7 +435,7 @@ const ClientDashboard = () => {
           <TabsList>
             <TabsTrigger value="entries" className="flex items-center gap-2">
               <ClipboardList className="w-4 h-4" />
-              My Entries
+              Dashboard
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
