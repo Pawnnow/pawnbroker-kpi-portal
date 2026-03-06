@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { isGridCurrencyField } from "@/lib/utils";
 
 interface DataGridProps {
   title: string;
@@ -9,9 +10,10 @@ interface DataGridProps {
   onChange: (key: string, value: string) => void;
   requiredRows?: string[];
   requiredColumn?: string;
+  gridPrefix?: string; // e.g. "aged" or "pawn_balance" for currency detection
 }
 
-const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], requiredColumn }: DataGridProps) => {
+const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], requiredColumn, gridPrefix }: DataGridProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateNumeric = (value: string): boolean => {
@@ -60,18 +62,25 @@ const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], r
                   const key = `${row}_${sanitizedCol}`;
                   const hasError = !!errors[key];
                   const isCellRequired = isRequired && (!requiredColumn || col === requiredColumn);
+                  const fieldKey = gridPrefix ? `${gridPrefix}_${key}` : key;
+                  const isCurrency = isGridCurrencyField(fieldKey);
                   return (
                     <td key={col} className="border border-border p-2">
                       <div className="flex flex-col">
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          value={values[key] || ""}
-                          onChange={(e) => handleChange(key, e.target.value)}
-                          className={`w-full text-right text-sm ${hasError ? "border-destructive" : ""}`}
-                          style={isCellRequired ? { backgroundColor: 'rgba(16, 216, 6, 0.15)' } : undefined}
-                          placeholder="0"
-                        />
+                        <div className="relative">
+                          {isCurrency && (
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
+                          )}
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            value={values[key] || ""}
+                            onChange={(e) => handleChange(key, e.target.value)}
+                            className={`w-full text-right text-sm ${isCurrency ? "pl-6" : ""} ${hasError ? "border-destructive" : ""}`}
+                            style={isCellRequired ? { backgroundColor: 'rgba(16, 216, 6, 0.15)' } : undefined}
+                            placeholder="0"
+                          />
+                        </div>
                         {hasError && (
                           <span className="text-xs text-destructive mt-1">{errors[key]}</span>
                         )}

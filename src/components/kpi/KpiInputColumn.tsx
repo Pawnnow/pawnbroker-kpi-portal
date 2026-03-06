@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { CURRENCY_FIELDS } from "@/lib/utils";
 
 interface KpiField {
   name: string;
@@ -39,29 +40,37 @@ const KpiInputColumn = ({ title, fields, values, onChange, category }: KpiInputC
     <div className="bg-card rounded-lg border border-border p-6">
       <h3 className="text-lg font-bold text-foreground mb-4">{title}</h3>
       <div className="space-y-3">
-        {fields.map((field) => (
+        {fields.map((field) => {
+          const isCurrency = CURRENCY_FIELDS.has(field.name);
+          return (
           <div key={field.name} className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-4">
               <Label htmlFor={field.name} className="text-sm text-foreground flex-1">
                 {field.label}
                 {field.isRequired && <span className="text-destructive ml-1">*</span>}
               </Label>
-              <Input
-                id={field.name}
-                type="text"
-                inputMode="decimal"
-                value={values[field.name] || ""}
-                onChange={(e) => handleChange(field.name, e.target.value)}
-                className={`w-32 text-right ${errors[field.name] ? "border-destructive" : ""}`}
-                style={field.isRequired ? { backgroundColor: 'rgba(16, 216, 6, 0.15)' } : undefined}
-                placeholder="0"
-              />
+              <div className="relative">
+                {isCurrency && (
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
+                )}
+                <Input
+                  id={field.name}
+                  type="text"
+                  inputMode="decimal"
+                  value={values[field.name] || ""}
+                  onChange={(e) => handleChange(field.name, e.target.value)}
+                  className={`w-32 text-right ${isCurrency ? "pl-6" : ""} ${errors[field.name] ? "border-destructive" : ""}`}
+                  style={field.isRequired ? { backgroundColor: 'rgba(16, 216, 6, 0.15)' } : undefined}
+                  placeholder="0"
+                />
+              </div>
             </div>
             {errors[field.name] && (
               <p className="text-xs text-destructive text-right">{errors[field.name]}</p>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
