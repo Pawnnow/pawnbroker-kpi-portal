@@ -52,7 +52,8 @@ const KpiInputColumn = ({ title, fields, values, onChange, category }: KpiInputC
                 inputMode="decimal"
                 value={values[field.name] || ""}
                 onChange={(e) => handleChange(field.name, e.target.value)}
-                className={`w-32 text-right ${field.isRequired ? "bg-emerald-50 dark:bg-emerald-950/30" : ""} ${errors[field.name] ? "border-destructive" : ""}`}
+                className={`w-32 text-right ${errors[field.name] ? "border-destructive" : ""}`}
+                style={field.isRequired ? { backgroundColor: 'rgba(49, 249, 39, 0.15)' } : undefined}
                 placeholder="0"
               />
             </div>
