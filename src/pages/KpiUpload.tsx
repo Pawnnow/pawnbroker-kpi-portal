@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import MonthSelector from "@/components/kpi/MonthSelector";
 import KpiInputColumn from "@/components/kpi/KpiInputColumn";
 import DataGrid from "@/components/kpi/DataGrid";
@@ -36,7 +37,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
 import { useUserLocations } from "@/hooks/useUserLocations";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Download, BarChart3, Shield, Store, Save, FileText } from "lucide-react";
+import { LogOut, Download, BarChart3, Shield, Store, Save, FileText, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import * as XLSX from "xlsx";
 
 const PAWN_KPIS = [
@@ -133,6 +134,8 @@ const KpiUpload = () => {
   const [draftStatus, setDraftStatus] = useState<string | null>(null);
   const draftTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [submissionBanner, setSubmissionBanner] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [lastSubmittedAt, setLastSubmittedAt] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
@@ -158,6 +161,38 @@ const KpiUpload = () => {
     });
   }, []);
 
+  // Fetch last submitted timestamp when year/month/location changes
+  useEffect(() => {
+    if (!userId || !year || !month) {
+      setLastSubmittedAt(null);
+      return;
+    }
+    const fetchLastSubmitted = async () => {
+      let query = supabase
+        .from("kpi_entries")
+        .select("updated_at")
+        .eq("user_id", userId)
+        .eq("year", year)
+        .eq("month", month)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+
+      if (hasLocations && selectedLocationId) {
+        query = query.eq("location_id", selectedLocationId);
+      } else {
+        query = query.is("location_id", null);
+      }
+
+      const { data } = await query;
+      if (data && data.length > 0 && data[0].updated_at) {
+        setLastSubmittedAt(new Date(data[0].updated_at).toLocaleString());
+      } else {
+        setLastSubmittedAt(null);
+      }
+    };
+    fetchLastSubmitted();
+  }, [userId, year, month, selectedLocationId, hasLocations]);
+
   // Draft key helper
   const getDraftKey = useCallback(() => {
     if (!userId || !year || !month) return null;
@@ -182,8 +217,8 @@ const KpiUpload = () => {
           pawnValues, merchandiseValues, marketingValues,
           agedInventoryValues, pawnBalanceValues,
         }));
-        setDraftStatus("Draft saved");
-        setTimeout(() => setDraftStatus(null), 2000);
+        setDraftStatus("Saved locally (not submitted)");
+        setTimeout(() => setDraftStatus(null), 3000);
       } catch (e) {
         console.error("Failed to save draft:", e);
       }
@@ -496,6 +531,7 @@ const KpiUpload = () => {
     }
 
     setIsSubmitting(true);
+    setSubmissionBanner(null);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -503,6 +539,8 @@ const KpiUpload = () => {
       if (!user) {
         throw new Error("User not authenticated");
       }
+
+      console.log("[KPI Submit] Starting submission for user:", user.id, "year:", year, "month:", month);
 
       const entries = [];
 
@@ -598,6 +636,8 @@ const KpiUpload = () => {
         return;
       }
 
+      console.log("[KPI Submit] Prepared", entries.length, "entries. Deleting old entries...");
+
       // Delete existing entries for this user/location/year/month, then insert fresh
       let deleteQuery = supabase
         .from("kpi_entries")
@@ -617,26 +657,41 @@ const KpiUpload = () => {
       deleteQuery = deleteQuery.in("field_name", fieldNames);
 
       const { error: deleteError } = await deleteQuery;
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error("[KPI Submit] Delete failed:", deleteError);
+        throw deleteError;
+      }
+
+      console.log("[KPI Submit] Old entries deleted. Inserting", entries.length, "new entries...");
 
       const { error } = await supabase
         .from("kpi_entries")
         .insert(entries);
 
-      if (error) throw error;
+      if (error) {
+        console.error("[KPI Submit] Insert failed:", error);
+        throw error;
+      }
 
-      toast({
-        title: "Success",
-        description: `KPI data for ${month}/${year} has been submitted successfully.`,
+      console.log("[KPI Submit] SUCCESS -", entries.length, "entries saved for", month + "/" + year);
+
+      // Clear draft on success
+      clearDraft();
+
+      // Update last submitted timestamp
+      setLastSubmittedAt(new Date().toLocaleString());
+
+      // Show persistent success banner (don't clear the form)
+      setSubmissionBanner({
+        type: "success",
+        message: `KPI data for ${MONTH_NAMES[(month ?? 1) - 1]} ${year} has been submitted successfully (${entries.length} fields saved).`,
       });
 
-      handleClear();
     } catch (error) {
-      console.error("Error submitting KPI data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to submit KPI data. Please try again.",
-        variant: "destructive",
+      console.error("[KPI Submit] Error submitting KPI data:", error);
+      setSubmissionBanner({
+        type: "error",
+        message: `Failed to submit KPI data. Please try again. Error: ${error instanceof Error ? error.message : "Unknown error"}`,
       });
     } finally {
       setIsSubmitting(false);
@@ -788,14 +843,57 @@ const KpiUpload = () => {
           )}
 
 
+          {/* Submission Banner */}
+          {submissionBanner && (
+            <div className={`rounded-lg border p-4 flex items-start gap-3 ${
+              submissionBanner.type === "success"
+                ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200"
+                : "bg-destructive/10 border-destructive/30 text-destructive"
+            }`}>
+              {submissionBanner.type === "success" ? (
+                <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              ) : (
+                <XCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              )}
+              <div className="flex-1">
+                <p className="font-semibold">{submissionBanner.type === "success" ? "Data Submitted Successfully" : "Submission Failed"}</p>
+                <p className="text-sm mt-1">{submissionBanner.message}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setSubmissionBanner(null)} className="flex-shrink-0">
+                Dismiss
+              </Button>
+            </div>
+          )}
+
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-4">
+          <div className="flex items-center justify-end gap-4 flex-wrap">
+            {lastSubmittedAt && (
+              <span className="text-sm text-muted-foreground flex items-center gap-1 mr-auto">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                Last submitted: {lastSubmittedAt}
+              </span>
+            )}
             {draftStatus && (
               <span className="text-sm text-muted-foreground flex items-center gap-1">
                 <Save className="w-3 h-3" />
                 {draftStatus}
               </span>
             )}
+            {requiredFieldNames.length > 0 && (() => {
+              const allValues = { ...pawnValues, ...merchandiseValues, ...marketingValues };
+              const filledCount = requiredFieldNames.filter((name) => allValues[name]?.trim()).length;
+              const totalRequired = requiredFieldNames.length + requiredAgedRows.length;
+              const filledAged = requiredAgedRows.filter((rowLabel) => {
+                const key = `${rowLabel}_Total Dollar`;
+                return agedInventoryValues[key]?.trim();
+              }).length;
+              const totalFilled = filledCount + filledAged;
+              return (
+                <Badge variant={totalFilled === totalRequired ? "default" : "secondary"} className="text-xs">
+                  {totalFilled}/{totalRequired} required fields filled
+                </Badge>
+              );
+            })()}
             <Button variant="outline" onClick={handleClear} disabled={isSubmitting}>
               Clear
             </Button>
@@ -860,13 +958,28 @@ const KpiUpload = () => {
       <AlertDialog open={missingFieldsDialogOpen} onOpenChange={setMissingFieldsDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Missing Required Fields</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your submission is missing values for: {missingFieldLabels.join(", ")}.
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Your data has NOT been saved yet
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p className="font-medium text-foreground">
+                Please fill in the following required fields before submitting:
+              </p>
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                {missingFieldLabels.map((label) => (
+                  <li key={label}>{label}</li>
+                ))}
+              </ul>
+              <p className="text-sm">
+                Required fields are marked with a red asterisk (<span className="text-destructive font-bold">*</span>) and have a green background.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setMissingFieldsDialogOpen(false)}>OK</AlertDialogAction>
+            <AlertDialogAction onClick={() => setMissingFieldsDialogOpen(false)}>
+              Go back and fill in fields
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
