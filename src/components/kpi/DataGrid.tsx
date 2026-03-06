@@ -61,7 +61,7 @@ const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], r
                   const hasError = !!errors[key];
                   const isCellRequired = isRequired && (!requiredColumn || col === requiredColumn);
                   return (
-                    <td key={col} className="border border-border p-2" style={isCellRequired ? { backgroundColor: 'rgba(17, 236, 6, 0.15)' } : undefined}>
+                    <td key={col} className="border border-border p-2" style={isCellRequired ? { backgroundColor: 'rgba(16, 216, 6, 0.15)' } : undefined}>
                       <div className="flex flex-col">
                         <Input
                           type="text"
