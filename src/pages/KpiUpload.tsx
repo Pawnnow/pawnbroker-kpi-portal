@@ -36,7 +36,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
 import { useUserLocations } from "@/hooks/useUserLocations";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Download, BarChart3, Shield, Store, Save } from "lucide-react";
+import { LogOut, Download, BarChart3, Shield, Store, Save, FileText } from "lucide-react";
 import * as XLSX from "xlsx";
 
 const PAWN_KPIS = [
@@ -649,6 +649,12 @@ const KpiUpload = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">KPI Upload Portal</h1>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <a href="/Pawn_Gorillas_KPI_Guide.pdf" download>
+                <FileText className="w-4 h-4 mr-2" />
+                Guide for Pawnmate Users
+              </a>
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               <BarChart3 className="w-4 h-4 mr-2" />
               My Entries
