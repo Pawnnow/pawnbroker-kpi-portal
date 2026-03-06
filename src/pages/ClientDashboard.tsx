@@ -37,6 +37,8 @@ const PAWN_BALANCE_ROWS = ["$0 - $100", "$100 - $250", "$251 - $500", "$501 - $1
 
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+const TWO_DECIMAL_PATTERN = /^-?\d*\.?\d{0,2}$/;
+
 const ClientDashboard = () => {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -48,6 +50,8 @@ const ClientDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [addingFieldName, setAddingFieldName] = useState<string | null>(null);
+  const [addValue, setAddValue] = useState("");
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -103,9 +107,14 @@ const ClientDashboard = () => {
   const handleEdit = (entry: KpiEntry) => {
     setEditingId(entry.id);
     setEditValue(entry.field_value || "");
+    setAddingFieldName(null);
   };
 
   const handleSave = async (entry: KpiEntry) => {
+    if (editValue && !TWO_DECIMAL_PATTERN.test(editValue)) {
+      toast({ title: "Validation Error", description: "Value cannot exceed 2 decimal places.", variant: "destructive" });
+      return;
+    }
     try {
       const { error } = await supabase
         .from("kpi_entries")
@@ -124,6 +133,51 @@ const ClientDashboard = () => {
   const handleCancel = () => {
     setEditingId(null);
     setEditValue("");
+    setAddingFieldName(null);
+    setAddValue("");
+  };
+
+  const handleStartAdd = (fieldName: string) => {
+    setAddingFieldName(fieldName);
+    setAddValue("");
+    setEditingId(null);
+  };
+
+  const handleCreate = async (fieldName: string, fieldLabel: string, category: string) => {
+    if (addValue && !TWO_DECIMAL_PATTERN.test(addValue)) {
+      toast({ title: "Validation Error", description: "Value cannot exceed 2 decimal places.", variant: "destructive" });
+      return;
+    }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const newEntry = {
+        user_id: user.id,
+        year,
+        month,
+        field_name: fieldName,
+        field_label: fieldLabel,
+        field_value: addValue || null,
+        category,
+        location_id: hasLocations && selectedLocationId ? selectedLocationId : null,
+      };
+
+      const { data, error } = await supabase
+        .from("kpi_entries")
+        .insert(newEntry)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setEntries(prev => [...prev, data as KpiEntry]);
+      setAddingFieldName(null);
+      setAddValue("");
+      toast({ title: "Created", description: `${fieldLabel} added.` });
+    } catch (error) {
+      console.error("Error creating entry:", error);
+      toast({ title: "Error", description: "Failed to create entry.", variant: "destructive" });
+    }
   };
 
   const handleLogout = async () => {
@@ -131,19 +185,58 @@ const ClientDashboard = () => {
     navigate("/auth");
   };
 
-  // Build lookup for entries by field_name
   const entryByField = new Map<string, KpiEntry>();
   entries.forEach(e => entryByField.set(e.field_name, e));
 
-  // Render a single KPI field row (label + value with edit)
-  const renderFieldRow = (fieldName: string, fieldLabel: string) => {
+  const renderFieldRow = (fieldName: string, fieldLabel: string, category: string) => {
     const entry = entryByField.get(fieldName);
-    if (!entry) return (
-      <div key={fieldName} className="flex items-center justify-between gap-4">
-        <Label className="text-sm text-foreground flex-1">{fieldLabel}</Label>
-        <span className="w-32 text-right text-sm text-muted-foreground">—</span>
-      </div>
-    );
+
+    // No entry exists — allow adding
+    if (!entry) {
+      if (addingFieldName === fieldName) {
+        return (
+          <div key={fieldName} className="flex items-center justify-between gap-2">
+            <Label className="text-sm text-foreground flex-1">{fieldLabel}</Label>
+            <div className="flex items-center gap-1">
+              <Input
+                value={addValue}
+                onChange={(e) => {
+                  if (e.target.value === "" || e.target.value === "-" || TWO_DECIMAL_PATTERN.test(e.target.value)) {
+                    setAddValue(e.target.value);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreate(fieldName, fieldLabel, category);
+                  if (e.key === "Escape") handleCancel();
+                }}
+                className="w-32 text-right text-sm"
+                autoFocus
+                placeholder="0"
+              />
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCreate(fieldName, fieldLabel, category)}>
+                <Check className="w-3.5 h-3.5 text-green-600" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCancel}>
+                <X className="w-3.5 h-3.5 text-muted-foreground" />
+              </Button>
+            </div>
+          </div>
+        );
+      }
+      return (
+        <div key={fieldName} className="flex items-center justify-between gap-4">
+          <Label className="text-sm text-foreground flex-1">{fieldLabel}</Label>
+          <div className="flex items-center gap-1">
+            <span className="w-32 text-right text-sm text-muted-foreground">—</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStartAdd(fieldName)}>
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // Entry exists — edit mode
     return (
       <div key={fieldName} className="flex items-center justify-between gap-2">
         <Label className="text-sm text-foreground flex-1">{fieldLabel}</Label>
@@ -151,7 +244,11 @@ const ClientDashboard = () => {
           <div className="flex items-center gap-1">
             <Input
               value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
+              onChange={(e) => {
+                if (e.target.value === "" || e.target.value === "-" || TWO_DECIMAL_PATTERN.test(e.target.value)) {
+                  setEditValue(e.target.value);
+                }
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSave(entry);
                 if (e.key === "Escape") handleCancel();
@@ -178,32 +275,19 @@ const ClientDashboard = () => {
     );
   };
 
-  // Render a KPI column card
-  const renderKpiColumn = (title: string, fields: { name: string; label: string }[]) => {
+  const renderKpiColumn = (title: string, fields: { name: string; label: string }[], category: string) => {
     if (fields.length === 0) return null;
     return (
       <div className="bg-card rounded-lg border border-border p-6">
         <h3 className="text-lg font-bold text-foreground mb-4">{title}</h3>
         <div className="space-y-3">
-          {fields.map(f => renderFieldRow(f.name, f.label))}
+          {fields.map(f => renderFieldRow(f.name, f.label, category))}
         </div>
       </div>
     );
   };
 
-  // Render a read-only data grid (Aged Inventory / Pawn Balance)
-  const renderReadOnlyGrid = (title: string, columns: string[], rows: string[]) => {
-    // Check if there's any data for this grid
-    const hasData = rows.some(row =>
-      columns.some(col => {
-        const sanitizedCol = col.replace('#', 'Num').replace('$', 'Dollar');
-        const key = `aged_${row}_${sanitizedCol}`;
-        const pbKey = `pawn_balance_${row}_${sanitizedCol}`;
-        return entryByField.has(key) || entryByField.has(pbKey);
-      })
-    );
-
-    // Determine the field_name prefix based on the title
+  const renderReadOnlyGrid = (title: string, columns: string[], rows: string[], gridCategory: string) => {
     const isAged = title.toLowerCase().includes("aged");
 
     return (
@@ -227,19 +311,11 @@ const ClientDashboard = () => {
                   <td className="border border-border bg-secondary p-2 text-left font-medium text-sm">{row}</td>
                   {columns.map(col => {
                     const sanitizedCol = col.replace('#', 'Num').replace('$', 'Dollar');
-                    // Try both aged and pawn_balance prefix patterns
-                    const agedKey = `aged_${row}_${sanitizedCol}`;
-                    const pbKey = `pawn_balance_${row}_${sanitizedCol}`;
-                    const fieldKey = isAged ? agedKey : pbKey;
+                    const fieldKey = isAged ? `aged_${row}_${sanitizedCol}` : `pawn_balance_${row}_${sanitizedCol}`;
+                    const fieldLabel = `${row} - ${col}`;
+                    const entry = entries.find(e => e.field_name === fieldKey);
 
-                    // Find entry by looking at field_name matching the grid key pattern
-                    // The actual field_name stored uses the same key pattern as the upload form
-                    const entry = entries.find(e => {
-                      // Match by reconstructing the key from the entry's field_name
-                      return e.field_name === fieldKey;
-                    });
-
-                    const value = entry?.field_value || "";
+                    const isAdding = addingFieldName === fieldKey;
 
                     return (
                       <td key={col} className="border border-border p-2">
@@ -247,7 +323,11 @@ const ClientDashboard = () => {
                           <div className="flex items-center gap-1">
                             <Input
                               value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
+                              onChange={(e) => {
+                                if (e.target.value === "" || e.target.value === "-" || TWO_DECIMAL_PATTERN.test(e.target.value)) {
+                                  setEditValue(e.target.value);
+                                }
+                              }}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") handleSave(entry);
                                 if (e.key === "Escape") handleCancel();
@@ -262,11 +342,39 @@ const ClientDashboard = () => {
                               <X className="w-3 h-3" />
                             </Button>
                           </div>
+                        ) : isAdding ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              value={addValue}
+                              onChange={(e) => {
+                                if (e.target.value === "" || e.target.value === "-" || TWO_DECIMAL_PATTERN.test(e.target.value)) {
+                                  setAddValue(e.target.value);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleCreate(fieldKey, fieldLabel, gridCategory);
+                                if (e.key === "Escape") handleCancel();
+                              }}
+                              className="w-full text-right text-sm"
+                              autoFocus
+                              placeholder="0"
+                            />
+                            <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => handleCreate(fieldKey, fieldLabel, gridCategory)}>
+                              <Check className="w-3 h-3 text-green-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={handleCancel}>
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
                         ) : (
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-foreground w-full text-right">{value || "—"}</span>
-                            {entry && (
+                            <span className="text-sm text-foreground w-full text-right">{entry?.field_value || "—"}</span>
+                            {entry ? (
                               <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0 ml-1" onClick={() => handleEdit(entry)}>
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                            ) : (
+                              <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0 ml-1" onClick={() => handleStartAdd(fieldKey)}>
                                 <Pencil className="w-3 h-3" />
                               </Button>
                             )}
@@ -285,9 +393,9 @@ const ClientDashboard = () => {
   };
 
   const columns = [
-    { title: "Pawn KPIs", fields: pawnKpis },
-    { title: "Merchandise KPIs", fields: merchandiseKpis },
-    { title: "Marketing KPIs", fields: marketingKpis },
+    { title: "Pawn KPIs", fields: pawnKpis, category: "pawn" },
+    { title: "Merchandise KPIs", fields: merchandiseKpis, category: "merchandise" },
+    { title: "Marketing KPIs", fields: marketingKpis, category: "marketing" },
   ].filter(col => col.fields.length > 0);
 
   const gridClass = columns.length === 3
@@ -295,6 +403,8 @@ const ClientDashboard = () => {
     : columns.length === 2
     ? "grid grid-cols-1 lg:grid-cols-2 gap-6"
     : "grid grid-cols-1 gap-6";
+
+  const hasAnyFieldConfig = columns.length > 0 || showAgedInventoryGrid || showPawnBalanceGrid;
 
   return (
     <div className="min-h-screen bg-secondary/30">
@@ -333,7 +443,6 @@ const ClientDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* My Entries Tab */}
           <TabsContent value="entries" className="space-y-6">
             {/* Filters */}
             <div className="bg-card rounded-lg border border-border p-6">
@@ -383,36 +492,30 @@ const ClientDashboard = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                 <p className="mt-4 text-muted-foreground">Loading entries...</p>
               </div>
-            ) : entries.length === 0 ? (
+            ) : !hasAnyFieldConfig ? (
               <div className="bg-card rounded-lg border border-border p-12 text-center">
-                <p className="text-muted-foreground">No entries found for {MONTH_NAMES[month - 1]} {year}.</p>
-                <Button variant="outline" className="mt-4" onClick={() => navigate("/kpi-upload")}>
-                  Go to Upload
-                </Button>
+                <p className="text-muted-foreground">No KPI fields configured.</p>
               </div>
             ) : (
               <>
-                {/* 3-column KPI layout */}
                 {columns.length > 0 && (
                   <div className={gridClass}>
-                    {columns.map(col => renderKpiColumn(col.title, col.fields))}
+                    {columns.map(col => renderKpiColumn(col.title, col.fields, col.category))}
                   </div>
                 )}
 
-                {/* Data Grids */}
                 <div className="space-y-6">
                   {showAgedInventoryGrid && (
-                    renderReadOnlyGrid("Aged Inventory Grid", visibleAgedInventoryColumns, AGED_INVENTORY_ROWS)
+                    renderReadOnlyGrid("Aged Inventory Grid", visibleAgedInventoryColumns, AGED_INVENTORY_ROWS, "aged_inventory")
                   )}
                   {showPawnBalanceGrid && (
-                    renderReadOnlyGrid("Pawn Balance Breakdown Grid", PAWN_BALANCE_COLUMNS, PAWN_BALANCE_ROWS)
+                    renderReadOnlyGrid("Pawn Balance Breakdown Grid", PAWN_BALANCE_COLUMNS, PAWN_BALANCE_ROWS, "pawn_balance")
                   )}
                 </div>
               </>
             )}
           </TabsContent>
 
-          {/* Dashboard Tab */}
           <TabsContent value="dashboard">
             <DashboardCharts />
           </TabsContent>

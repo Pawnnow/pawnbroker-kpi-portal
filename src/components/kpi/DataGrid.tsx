@@ -17,7 +17,7 @@ const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], r
   const validateNumeric = (value: string): boolean => {
     if (value === "" || value === "-") return true;
     // Allow numbers with optional decimals and negative sign
-    const numericPattern = /^-?\d*\.?\d*$/;
+    const numericPattern = /^-?\d*\.?\d{0,2}$/;
     return numericPattern.test(value);
   };
 
