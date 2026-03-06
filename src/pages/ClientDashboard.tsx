@@ -19,6 +19,7 @@ import { useUserLocations } from "@/hooks/useUserLocations";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
 import { useNavigate } from "react-router-dom";
 import { LogOut, ArrowLeft, Shield, Pencil, Check, X, Store, BarChart3, ClipboardList } from "lucide-react";
+import { CURRENCY_FIELDS, isCurrencyField, isGridCurrencyField, formatAsCurrency, normalizeCurrencyValue } from "@/lib/utils";
 
 interface KpiEntry {
   id: string;
@@ -116,12 +117,13 @@ const ClientDashboard = () => {
       return;
     }
     try {
+      const finalValue = editValue && isCurrencyField(entry.field_name) ? normalizeCurrencyValue(editValue) : editValue;
       const { error } = await supabase
         .from("kpi_entries")
-        .update({ field_value: editValue, updated_at: new Date().toISOString() })
+        .update({ field_value: finalValue, updated_at: new Date().toISOString() })
         .eq("id", entry.id);
       if (error) throw error;
-      setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, field_value: editValue } : e));
+      setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, field_value: finalValue } : e));
       setEditingId(null);
       toast({ title: "Updated", description: `${entry.field_label} updated.` });
     } catch (error) {
@@ -152,13 +154,14 @@ const ClientDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const finalValue = addValue && isCurrencyField(fieldName) ? normalizeCurrencyValue(addValue) : (addValue || null);
       const newEntry = {
         user_id: user.id,
         year,
         month,
         field_name: fieldName,
         field_label: fieldLabel,
-        field_value: addValue || null,
+        field_value: finalValue,
         category,
         location_id: hasLocations && selectedLocationId ? selectedLocationId : null,
       };
@@ -265,7 +268,7 @@ const ClientDashboard = () => {
           </div>
         ) : (
           <div className="flex items-center gap-1">
-            <span className="w-32 text-right text-sm text-foreground">{entry.field_value || "—"}</span>
+            <span className="w-32 text-right text-sm text-foreground">{CURRENCY_FIELDS.has(fieldName) ? formatAsCurrency(entry.field_value) : (entry.field_value || "—")}</span>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(entry)}>
               <Pencil className="w-3.5 h-3.5" />
             </Button>
@@ -368,7 +371,7 @@ const ClientDashboard = () => {
                           </div>
                         ) : (
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-foreground w-full text-right">{entry?.field_value || "—"}</span>
+                            <span className="text-sm text-foreground w-full text-right">{isGridCurrencyField(fieldKey) ? formatAsCurrency(entry?.field_value) : (entry?.field_value || "—")}</span>
                             {entry ? (
                               <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0 ml-1" onClick={() => handleEdit(entry)}>
                                 <Pencil className="w-3 h-3" />

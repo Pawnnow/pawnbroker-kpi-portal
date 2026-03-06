@@ -32,6 +32,7 @@ import KpiInputColumn from "@/components/kpi/KpiInputColumn";
 import DataGrid from "@/components/kpi/DataGrid";
 
 import { supabase } from "@/integrations/supabase/client";
+import { CURRENCY_FIELDS, isCurrencyField, normalizeCurrencyValue } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
@@ -555,7 +556,7 @@ const KpiUpload = () => {
             month,
             field_name: field.name,
             field_label: field.label,
-            field_value: pawnValues[field.name],
+            field_value: CURRENCY_FIELDS.has(field.name) ? normalizeCurrencyValue(pawnValues[field.name]) : pawnValues[field.name],
             category: "pawn",
             ...(locationId && { location_id: locationId }),
           });
@@ -571,7 +572,7 @@ const KpiUpload = () => {
             month,
             field_name: field.name,
             field_label: field.label,
-            field_value: merchandiseValues[field.name],
+            field_value: CURRENCY_FIELDS.has(field.name) ? normalizeCurrencyValue(merchandiseValues[field.name]) : merchandiseValues[field.name],
             category: "merchandise",
             ...(locationId && { location_id: locationId }),
           });
@@ -587,14 +588,14 @@ const KpiUpload = () => {
             month,
             field_name: field.name,
             field_label: field.label,
-            field_value: marketingValues[field.name],
+            field_value: CURRENCY_FIELDS.has(field.name) ? normalizeCurrencyValue(marketingValues[field.name]) : marketingValues[field.name],
             category: "marketing",
             ...(locationId && { location_id: locationId }),
           });
         }
       }
 
-      // Add aged inventory grid values
+      // Add aged inventory grid values (all currency)
       Object.entries(agedInventoryValues).forEach(([key, value]) => {
         if (value) {
           entries.push({
@@ -603,7 +604,7 @@ const KpiUpload = () => {
             month,
             field_name: key,
             field_label: key,
-            field_value: value,
+            field_value: normalizeCurrencyValue(value),
             category: "aged_inventory",
             ...(locationId && { location_id: locationId }),
           });
@@ -613,13 +614,14 @@ const KpiUpload = () => {
       // Add pawn balance grid values
       Object.entries(pawnBalanceValues).forEach(([key, value]) => {
         if (value) {
+          const isCurrency = key.endsWith("_Dollar");
           entries.push({
             user_id: user.id,
             year,
             month,
             field_name: key,
             field_label: key,
-            field_value: value,
+            field_value: isCurrency ? normalizeCurrencyValue(value) : value,
             category: "pawn_balance",
             ...(locationId && { location_id: locationId }),
           });
@@ -827,6 +829,7 @@ const KpiUpload = () => {
                     onChange={(key, value) => setAgedInventoryValues({ ...agedInventoryValues, [key]: value })}
                     requiredRows={requiredAgedRows}
                     requiredColumn="Total $"
+                    gridPrefix="aged"
                   />
                 )}
                 {showPawnBalanceGrid && (
@@ -836,6 +839,7 @@ const KpiUpload = () => {
                     rows={PAWN_BALANCE_ROWS}
                     values={pawnBalanceValues}
                     onChange={(key, value) => setPawnBalanceValues({ ...pawnBalanceValues, [key]: value })}
+                    gridPrefix="pawn_balance"
                   />
                 )}
               </div>
