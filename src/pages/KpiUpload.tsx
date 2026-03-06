@@ -649,16 +649,14 @@ const KpiUpload = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">KPI Upload Portal</h1>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
+              <BarChart3 className="w-4 h-4 mr-2" />
+              My Entries
+            </Button>
             {roleData?.isAdmin && (
               <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
                 <Shield className="w-4 h-4 mr-2" />
                 Admin
-              </Button>
-            )}
-            {roleData?.isAdmin && (
-              <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Dashboard
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={() => setExportDialogOpen(true)} disabled={isExporting}>
