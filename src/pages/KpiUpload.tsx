@@ -528,18 +528,15 @@ const KpiUpload = () => {
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               <BarChart3 className="w-4 h-4 mr-2" />
-              My Entries
+              User Dashboard
             </Button>
+            <FilesDropdown />
             {roleData?.isAdmin && (
               <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
                 <Shield className="w-4 h-4 mr-2" />
                 Admin
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => setExportDialogOpen(true)} disabled={isExporting}>
-              <Download className="w-4 h-4 mr-2" />
-              {isExporting ? "Exporting..." : "Export Excel"}
-            </Button>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
               Logout
