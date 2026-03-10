@@ -42,6 +42,7 @@ import UserListExpanded from "@/components/admin/UserListExpanded";
 import FieldVisibilityManager from "@/components/admin/FieldVisibilityManager";
 import LocationManager from "@/components/admin/LocationManager";
 import EmailTemplateEditor from "@/components/admin/EmailTemplateEditor";
+import SharedFileManager from "@/components/admin/SharedFileManager";
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
