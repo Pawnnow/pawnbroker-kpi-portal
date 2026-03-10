@@ -287,7 +287,7 @@ const KpiUpload = () => {
 
 
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!year || !month) {
       toast({
         title: "Missing information",
@@ -325,6 +325,26 @@ const KpiUpload = () => {
       setMissingFieldLabels(allMissing);
       setMissingFieldsDialogOpen(true);
       return;
+    }
+
+    // Count filled and blank fields
+    const totalPossible = pawnKpis.length + merchandiseKpis.length + marketingKpis.length
+      + (showAgedInventoryGrid ? visibleAgedInventoryColumns.length * AGED_INVENTORY_ROWS.length : 0)
+      + (showPawnBalanceGrid ? PAWN_BALANCE_COLUMNS.length * PAWN_BALANCE_ROWS.length : 0);
+
+    const filledKpi = Object.values({ ...pawnValues, ...merchandiseValues, ...marketingValues }).filter(v => v && v.trim() !== "").length;
+    const filledAged = Object.values(agedInventoryValues).filter(v => v && v.trim() !== "").length;
+    const filledPawnBal = Object.values(pawnBalanceValues).filter(v => v && v.trim() !== "").length;
+    const filled = filledKpi + filledAged + filledPawnBal;
+    const blank = totalPossible - filled;
+
+    setPendingFilledCount(filled);
+    setPendingBlankCount(blank);
+    setConfirmDialogOpen(true);
+  };
+
+  const executeSubmit = async () => {
+    setConfirmDialogOpen(false);
     }
 
     setIsSubmitting(true);
