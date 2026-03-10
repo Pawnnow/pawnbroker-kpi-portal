@@ -413,6 +413,7 @@ const AdminDashboard = () => {
         <FieldVisibilityManager />
 
         {/* Location Manager */}
+        <LocationManager />
 
         {/* Excel Integration for Admin */}
         <ExcelIntegration />
