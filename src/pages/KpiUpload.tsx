@@ -38,8 +38,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
 import { useUserLocations } from "@/hooks/useUserLocations";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Download, BarChart3, Shield, Store, Save, FileText, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
-import * as XLSX from "xlsx";
+import { LogOut, BarChart3, Shield, Store, Save, FileText, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import FilesDropdown from "@/components/FilesDropdown";
 
 const PAWN_KPIS = [
   { name: "ending_pawn_balance", label: "Ending Pawn Balance" },
