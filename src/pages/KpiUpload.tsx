@@ -337,7 +337,6 @@ const KpiUpload = () => {
 
   const executeSubmit = async () => {
     setConfirmDialogOpen(false);
-    }
 
     setIsSubmitting(true);
     setSubmissionBanner(null);
