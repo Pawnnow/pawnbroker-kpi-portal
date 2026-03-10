@@ -1,85 +1,30 @@
 
 
-# Comprehensive Update Package
+# Add Entry Creation for Empty Fields + Two-Decimal Limit
 
-This plan bundles all discussed changes into a single implementation.
+## Changes to `src/pages/ClientDashboard.tsx`
 
----
+1. **Add `handleCreate` function** — inserts a new `kpi_entries` row via Supabase with current user/year/month/location context, then appends to local state.
 
-## 1. Files Repository — Database & Storage
+2. **Add `addingFieldName` state** — tracks which empty field is being filled (alongside existing `editingId`/`editValue`).
 
-**New `shared_files` table** storing file metadata (category, subcategory, filename, storage path, uploaded_by, created_at). RLS: all authenticated users can SELECT; only admins can INSERT/DELETE.
+3. **Update `renderFieldRow`** — empty fields (no entry) get a pencil icon; clicking opens inline input; save calls `handleCreate`.
 
-**New `shared-files` storage bucket** (public). Storage RLS: authenticated can read; admins can upload/delete.
+4. **Update `renderReadOnlyGrid`** — same treatment for empty grid cells.
 
-## 2. Files Dropdown in Header
+5. **Always show KPI layout** — remove the `entries.length === 0` gate that hides columns/grids. Show the field structure even when no data exists.
 
-**New component: `src/components/FilesDropdown.tsx`**
-- DropdownMenu button labeled "Files" with folder icon.
-- Top-level items: "Marketing" (submenu with Facebook, Google, Website, Other) and "Management" (direct link).
-- Each leaf navigates to `/files/:category/:subcategory?`.
+6. **Two-decimal validation on inline edit inputs** — validate that values don't exceed 2 decimal places before saving. Pattern: `/^-?\d*\.?\d{0,2}$/`.
 
-**Added to headers** in both `KpiUpload.tsx` (~line 708) and `ClientDashboard.tsx` (~line 417).
+## Changes to `src/components/kpi/KpiInputColumn.tsx`
 
-## 3. Files Browsing Page
+7. **Two-decimal validation** — update `validateNumeric` to reject values with more than 2 decimal places. Change pattern from `/^-?\d*\.?\d*$/` to `/^-?\d*\.?\d{0,2}$/`.
 
-**New page: `src/pages/FilesPage.tsx`**
-- Protected route at `/files/:category/:subcategory?` registered in `App.tsx`.
-- Queries `shared_files` filtered by URL params.
-- Breadcrumb navigation and download links via public storage URL.
+## Changes to `src/components/kpi/DataGrid.tsx`
 
-## 4. Admin File Upload Panel
+8. **Two-decimal validation** — same pattern change in `validateNumeric`.
 
-**New component: `src/components/admin/SharedFileManager.tsx`**
-- Added to `AdminDashboard.tsx` after the LocationManager section (~line 412).
-- File input picker for local files.
-- Cascading dropdowns: Category (Marketing/Management) → Subcategory (only shown for Marketing: Facebook/Google/Website/Other).
-- Upload button stores file in bucket at `{category}/{subcategory}/{filename}` and inserts metadata row.
-- Table of existing files with delete capability.
+## No database changes needed
 
-Category config as a shared constant:
-```typescript
-const FILE_CATEGORIES = {
-  marketing: { label: "Marketing", subcategories: ["Facebook", "Google", "Website", "Other"] },
-  management: { label: "Management", subcategories: [] },
-};
-```
-
-## 5. KPI Upload Portal Header Changes (`src/pages/KpiUpload.tsx`)
-
-- **Rename** "My Entries" button (line 717) → "User Dashboard".
-- **Remove** "Export Excel" button and its associated state/logic (lines 725-728 and related `exportDialogOpen`/`isExporting` code).
-
-## 6. KPI Submission Confirmation Dialogs (`src/pages/KpiUpload.tsx`)
-
-Replace immediate submission with a two-step dialog flow:
-
-- **New state**: `confirmDialogOpen`, `successDialogOpen`, `pendingFilledCount`, `pendingBlankCount`.
-- **On Submit click**: after existing validation, count filled vs blank fields across all value maps (pawn, merchandise, marketing, aged inventory, pawn balance). Open pre-submission `AlertDialog`:
-  > "You are uploading **X** values and leaving **Y** values blank. Please confirm your submission."
-  > [Cancel] [Confirm]
-- **On Confirm**: execute the existing upload logic (renamed to `executeSubmit`).
-- **On success**: close confirmation dialog, open success `AlertDialog`:
-  > "**X** values uploaded. You may edit your entries at any time in the User Dashboard."
-  > [OK]
-
-## 7. Client Dashboard Tab Rename (`src/pages/ClientDashboard.tsx`)
-
-- Line 441: Change the first tab label from "Dashboard" to "My Entries" (the entries editor tab).
-- Line 445: The second tab remains "Dashboard" (charts tab).
-
----
-
-## Summary of Files Changed
-
-| File | Changes |
-|------|---------|
-| **Migration SQL** | Create `shared_files` table, `shared-files` bucket, RLS policies |
-| `src/components/FilesDropdown.tsx` | New — dropdown menu component |
-| `src/pages/FilesPage.tsx` | New — file browsing page |
-| `src/components/admin/SharedFileManager.tsx` | New — admin upload panel |
-| `src/App.tsx` | Add `/files/:category/:subcategory?` route |
-| `src/pages/KpiUpload.tsx` | Add FilesDropdown, rename button, remove Export Excel, add confirmation dialogs |
-| `src/pages/ClientDashboard.tsx` | Add FilesDropdown, rename tab to "My Entries" |
-| `src/pages/AdminDashboard.tsx` | Add SharedFileManager component |
+Existing RLS policies already allow users to insert their own entries.
 

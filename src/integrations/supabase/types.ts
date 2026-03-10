@@ -249,6 +249,44 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_files: {
+        Row: {
+          category: string
+          created_at: string
+          filename: string
+          id: string
+          storage_path: string
+          subcategory: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          filename: string
+          id?: string
+          storage_path: string
+          subcategory?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          filename?: string
+          id?: string
+          storage_path?: string
+          subcategory?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null

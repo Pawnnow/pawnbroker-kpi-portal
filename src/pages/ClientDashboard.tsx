@@ -19,6 +19,7 @@ import { useUserLocations } from "@/hooks/useUserLocations";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
 import { useNavigate } from "react-router-dom";
 import { LogOut, ArrowLeft, Shield, Pencil, Check, X, Store, BarChart3, ClipboardList } from "lucide-react";
+import FilesDropdown from "@/components/FilesDropdown";
 import { CURRENCY_FIELDS, isCurrencyField, isGridCurrencyField, formatAsCurrency, normalizeCurrencyValue } from "@/lib/utils";
 
 interface KpiEntry {
@@ -419,6 +420,7 @@ const ClientDashboard = () => {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Upload
             </Button>
+            <FilesDropdown />
             {roleData?.isAdmin && (
               <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
                 <Shield className="w-4 h-4 mr-2" />
@@ -438,7 +440,7 @@ const ClientDashboard = () => {
           <TabsList>
             <TabsTrigger value="entries" className="flex items-center gap-2">
               <ClipboardList className="w-4 h-4" />
-              Dashboard
+              My Entries
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />

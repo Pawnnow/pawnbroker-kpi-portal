@@ -9,23 +9,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import MonthSelector from "@/components/kpi/MonthSelector";
 import KpiInputColumn from "@/components/kpi/KpiInputColumn";
@@ -38,8 +30,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
 import { useUserLocations } from "@/hooks/useUserLocations";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Download, BarChart3, Shield, Store, Save, FileText, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
-import * as XLSX from "xlsx";
+import { LogOut, BarChart3, Shield, Store, Save, FileText, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import FilesDropdown from "@/components/FilesDropdown";
 
 const PAWN_KPIS = [
   { name: "ending_pawn_balance", label: "Ending Pawn Balance" },
@@ -125,11 +117,11 @@ const KpiUpload = () => {
   const [agedInventoryValues, setAgedInventoryValues] = useState<Record<string, string>>({});
   const [pawnBalanceValues, setPawnBalanceValues] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [availableMonths, setAvailableMonths] = useState<{ year: number; month: number }[]>([]);
-  const [selectedExportMonths, setSelectedExportMonths] = useState<Set<string>>(new Set());
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [pendingFilledCount, setPendingFilledCount] = useState(0);
+  const [pendingBlankCount, setPendingBlankCount] = useState(0);
   const [missingFieldsDialogOpen, setMissingFieldsDialogOpen] = useState(false);
   const [missingFieldLabels, setMissingFieldLabels] = useState<string[]>([]);
   const [draftStatus, setDraftStatus] = useState<string | null>(null);
@@ -261,66 +253,8 @@ const KpiUpload = () => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2022 + 10 }, (_, i) => 2022 + i);
 
-  // Fetch available months when export dialog opens
-  useEffect(() => {
-    if (exportDialogOpen) {
-      fetchAvailableMonths();
-    }
-  }, [exportDialogOpen]);
 
-  const fetchAvailableMonths = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
 
-      const { data, error } = await supabase
-        .from("kpi_entries")
-        .select("year, month")
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      // Get unique year-month combinations
-      const uniqueMonths = new Map<string, { year: number; month: number }>();
-      data?.forEach(row => {
-        const key = `${row.year}-${row.month}`;
-        if (!uniqueMonths.has(key)) {
-          uniqueMonths.set(key, { year: row.year, month: row.month });
-        }
-      });
-
-      const sorted = Array.from(uniqueMonths.values()).sort((a, b) => {
-        if (a.year !== b.year) return b.year - a.year;
-        return b.month - a.month;
-      });
-
-      setAvailableMonths(sorted);
-      // Select all by default
-      setSelectedExportMonths(new Set(sorted.map(m => `${m.year}-${m.month}`)));
-    } catch (error) {
-      console.error("Error fetching available months:", error);
-    }
-  };
-
-  const toggleMonthSelection = (key: string) => {
-    setSelectedExportMonths(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(key)) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
-      }
-      return newSet;
-    });
-  };
-
-  const toggleAllMonths = () => {
-    if (selectedExportMonths.size === availableMonths.length) {
-      setSelectedExportMonths(new Set());
-    } else {
-      setSelectedExportMonths(new Set(availableMonths.map(m => `${m.year}-${m.month}`)));
-    }
-  };
 
   const handleClear = () => {
     clearDraft();
@@ -342,156 +276,10 @@ const KpiUpload = () => {
     navigate("/auth");
   };
 
-  const handleExportExcel = async () => {
-    if (selectedExportMonths.size === 0) {
-      toast({
-        title: "No months selected",
-        description: "Please select at least one month to export.",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    setIsExporting(true);
-    setExportDialogOpen(false);
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
 
-      const { data, error } = await supabase
-        .from("kpi_entries")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("year", { ascending: false })
-        .order("month", { ascending: false });
 
-      if (error) throw error;
-
-      // Filter by selected months
-      const filteredData = data?.filter(row => {
-        const key = `${row.year}-${row.month}`;
-        return selectedExportMonths.has(key);
-      });
-
-      if (!filteredData || filteredData.length === 0) {
-        toast({
-          title: "No data to export",
-          description: "No data found for the selected months.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create workbook
-      const workbook = XLSX.utils.book_new();
-
-      // Group data by month
-      const dataByMonth = new Map<string, typeof filteredData>();
-      filteredData.forEach(row => {
-        const key = `${row.year}-${row.month}`;
-        if (!dataByMonth.has(key)) {
-          dataByMonth.set(key, []);
-        }
-        dataByMonth.get(key)!.push(row);
-      });
-
-      // Sort months for consistent sheet order
-      const sortedKeys = Array.from(dataByMonth.keys()).sort((a, b) => {
-        const [yearA, monthA] = a.split('-').map(Number);
-        const [yearB, monthB] = b.split('-').map(Number);
-        if (yearA !== yearB) return yearB - yearA;
-        return monthB - monthA;
-      });
-
-      // Define all KPIs in order for consistent export
-      const allKpis = [
-        { category: "Pawn KPIs", fields: PAWN_KPIS },
-        { category: "Merchandise KPIs", fields: MERCHANDISE_KPIS },
-        { category: "Marketing KPIs", fields: MARKETING_KPIS },
-      ];
-
-      // Create a sheet for each month
-      sortedKeys.forEach(key => {
-        const monthData = dataByMonth.get(key)!;
-        const [yearNum, monthNum] = key.split('-').map(Number);
-        const sheetName = `${MONTH_NAMES[monthNum - 1]} ${yearNum}`;
-        
-        // Create a map for quick lookup
-        const valueMap = new Map<string, string>();
-        monthData.forEach(row => {
-          valueMap.set(row.field_name, row.field_value || "");
-        });
-
-        // Build sheet data following the form structure
-        const sheetData: { Category: string; Label: string; Value: string }[] = [];
-        
-        allKpis.forEach(({ category, fields }) => {
-          fields.forEach(field => {
-            sheetData.push({
-              "Category": category,
-              "Label": field.label,
-              "Value": valueMap.get(field.name) || "",
-            });
-          });
-        });
-
-        // Add Aged Inventory Grid data
-        AGED_INVENTORY_ROWS.forEach(row => {
-          AGED_INVENTORY_COLUMNS.forEach(col => {
-            const fieldName = `aged_${row}_${col}`;
-            const value = valueMap.get(fieldName) || "";
-            if (value) {
-              sheetData.push({
-                "Category": "Aged Inventory",
-                "Label": `${row} - ${col}`,
-                "Value": value,
-              });
-            }
-          });
-        });
-
-        // Add Pawn Balance Grid data
-        PAWN_BALANCE_ROWS.forEach(row => {
-          PAWN_BALANCE_COLUMNS.forEach(col => {
-            const fieldName = `pawn_balance_${row}_${col}`;
-            const value = valueMap.get(fieldName) || "";
-            if (value) {
-              sheetData.push({
-                "Category": "Pawn Balance Breakdown",
-                "Label": `${row} - ${col}`,
-                "Value": value,
-              });
-            }
-          });
-        });
-
-        const worksheet = XLSX.utils.json_to_sheet(sheetData);
-        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.substring(0, 31));
-      });
-
-      // Download file
-      XLSX.writeFile(workbook, `kpi_data_export_${new Date().toISOString().split("T")[0]}.xlsx`);
-
-      toast({
-        title: "Export successful",
-        description: `Exported KPI data for ${selectedExportMonths.size} month(s) to Excel.`,
-      });
-    } catch (error) {
-      console.error("Error exporting data:", error);
-      toast({
-        title: "Export failed",
-        description: "Failed to export KPI data. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!year || !month) {
       toast({
         title: "Missing information",
@@ -530,6 +318,25 @@ const KpiUpload = () => {
       setMissingFieldsDialogOpen(true);
       return;
     }
+
+    // Count filled and blank fields
+    const totalPossible = pawnKpis.length + merchandiseKpis.length + marketingKpis.length
+      + (showAgedInventoryGrid ? visibleAgedInventoryColumns.length * AGED_INVENTORY_ROWS.length : 0)
+      + (showPawnBalanceGrid ? PAWN_BALANCE_COLUMNS.length * PAWN_BALANCE_ROWS.length : 0);
+
+    const filledKpi = Object.values({ ...pawnValues, ...merchandiseValues, ...marketingValues }).filter(v => v && v.trim() !== "").length;
+    const filledAged = Object.values(agedInventoryValues).filter(v => v && v.trim() !== "").length;
+    const filledPawnBal = Object.values(pawnBalanceValues).filter(v => v && v.trim() !== "").length;
+    const filled = filledKpi + filledAged + filledPawnBal;
+    const blank = totalPossible - filled;
+
+    setPendingFilledCount(filled);
+    setPendingBlankCount(blank);
+    setConfirmDialogOpen(true);
+  };
+
+  const executeSubmit = async () => {
+    setConfirmDialogOpen(false);
 
     setIsSubmitting(true);
     setSubmissionBanner(null);
@@ -683,11 +490,9 @@ const KpiUpload = () => {
       // Update last submitted timestamp
       setLastSubmittedAt(new Date().toLocaleString());
 
-      // Show persistent success banner (don't clear the form)
-      setSubmissionBanner({
-        type: "success",
-        message: `KPI data for ${MONTH_NAMES[(month ?? 1) - 1]} ${year} has been submitted successfully (${entries.length} fields saved).`,
-      });
+      // Show success dialog instead of banner
+      setPendingFilledCount(entries.length);
+      setSuccessDialogOpen(true);
 
     } catch (error) {
       console.error("[KPI Submit] Error submitting KPI data:", error);
@@ -714,18 +519,15 @@ const KpiUpload = () => {
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               <BarChart3 className="w-4 h-4 mr-2" />
-              My Entries
+              User Dashboard
             </Button>
+            <FilesDropdown />
             {roleData?.isAdmin && (
               <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
                 <Shield className="w-4 h-4 mr-2" />
                 Admin
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => setExportDialogOpen(true)} disabled={isExporting}>
-              <Download className="w-4 h-4 mr-2" />
-              {isExporting ? "Exporting..." : "Export Excel"}
-            </Button>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -908,56 +710,40 @@ const KpiUpload = () => {
         </div>
       </main>
 
-      {/* Export Month Selection Dialog */}
-      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Months to Export</DialogTitle>
-            <DialogDescription>
-              Choose which months you want to include in the Excel export. Each month will be on its own sheet.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="max-h-64 overflow-y-auto space-y-2 py-4">
-            {availableMonths.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No data available to export.</p>
-            ) : (
-              <>
-                <div className="flex items-center space-x-2 pb-2 border-b border-border">
-                  <Checkbox
-                    id="select-all"
-                    checked={selectedExportMonths.size === availableMonths.length}
-                    onCheckedChange={toggleAllMonths}
-                  />
-                  <Label htmlFor="select-all" className="font-semibold">Select All</Label>
-                </div>
-                {availableMonths.map(({ year: y, month: m }) => {
-                  const key = `${y}-${m}`;
-                  return (
-                    <div key={key} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={key}
-                        checked={selectedExportMonths.has(key)}
-                        onCheckedChange={() => toggleMonthSelection(key)}
-                      />
-                      <Label htmlFor={key}>{MONTH_NAMES[m - 1]} {y}</Label>
-                    </div>
-                  );
-                })}
-              </>
-            )}
-          </div>
+      {/* Pre-submission Confirmation Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Submission</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are uploading <strong>{pendingFilledCount}</strong> values and leaving <strong>{pendingBlankCount}</strong> values blank. Please confirm your submission.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeSubmit}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleExportExcel} disabled={selectedExportMonths.size === 0 || isExporting}>
-              {isExporting ? "Exporting..." : `Export ${selectedExportMonths.size} Month(s)`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Post-submission Success Dialog */}
+      <AlertDialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              Submission Successful
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{pendingFilledCount}</strong> values uploaded. You may edit your entries at any time in the User Dashboard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setSuccessDialogOpen(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Missing Required Fields Dialog */}
       <AlertDialog open={missingFieldsDialogOpen} onOpenChange={setMissingFieldsDialogOpen}>
         <AlertDialogContent>
