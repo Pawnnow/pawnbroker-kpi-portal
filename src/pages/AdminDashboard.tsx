@@ -403,6 +403,9 @@ const AdminDashboard = () => {
           <UserListExpanded />
         </div>
 
+        {/* Shared File Manager */}
+        <SharedFileManager />
+
         {/* Welcome Email Template */}
         <EmailTemplateEditor />
 
@@ -410,10 +413,6 @@ const AdminDashboard = () => {
         <FieldVisibilityManager />
 
         {/* Location Manager */}
-        <LocationManager />
-
-        {/* Shared File Manager */}
-        <SharedFileManager />
 
         {/* Excel Integration for Admin */}
         <ExcelIntegration />

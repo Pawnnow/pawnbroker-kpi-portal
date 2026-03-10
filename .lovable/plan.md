@@ -1,22 +1,30 @@
 
 
-# Reorder Admin Dashboard: Move Shared File Manager Above Email Template
+# Add Entry Creation for Empty Fields + Two-Decimal Limit
 
-Swap the two components in `src/pages/AdminDashboard.tsx` (lines ~405-416):
+## Changes to `src/pages/ClientDashboard.tsx`
 
-**Before:**
-```
-<EmailTemplateEditor />
-<FieldVisibilityManager ... />
-<SharedFileManager />
-```
+1. **Add `handleCreate` function** — inserts a new `kpi_entries` row via Supabase with current user/year/month/location context, then appends to local state.
 
-**After:**
-```
-<SharedFileManager />
-<EmailTemplateEditor />
-<FieldVisibilityManager ... />
-```
+2. **Add `addingFieldName` state** — tracks which empty field is being filled (alongside existing `editingId`/`editValue`).
 
-Single change in one file — just moving the `<SharedFileManager />` block above `<EmailTemplateEditor />`.
+3. **Update `renderFieldRow`** — empty fields (no entry) get a pencil icon; clicking opens inline input; save calls `handleCreate`.
+
+4. **Update `renderReadOnlyGrid`** — same treatment for empty grid cells.
+
+5. **Always show KPI layout** — remove the `entries.length === 0` gate that hides columns/grids. Show the field structure even when no data exists.
+
+6. **Two-decimal validation on inline edit inputs** — validate that values don't exceed 2 decimal places before saving. Pattern: `/^-?\d*\.?\d{0,2}$/`.
+
+## Changes to `src/components/kpi/KpiInputColumn.tsx`
+
+7. **Two-decimal validation** — update `validateNumeric` to reject values with more than 2 decimal places. Change pattern from `/^-?\d*\.?\d*$/` to `/^-?\d*\.?\d{0,2}$/`.
+
+## Changes to `src/components/kpi/DataGrid.tsx`
+
+8. **Two-decimal validation** — same pattern change in `validateNumeric`.
+
+## No database changes needed
+
+Existing RLS policies already allow users to insert their own entries.
 
