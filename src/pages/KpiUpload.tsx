@@ -499,11 +499,9 @@ const KpiUpload = () => {
       // Update last submitted timestamp
       setLastSubmittedAt(new Date().toLocaleString());
 
-      // Show persistent success banner (don't clear the form)
-      setSubmissionBanner({
-        type: "success",
-        message: `KPI data for ${MONTH_NAMES[(month ?? 1) - 1]} ${year} has been submitted successfully (${entries.length} fields saved).`,
-      });
+      // Show success dialog instead of banner
+      setPendingFilledCount(entries.length);
+      setSuccessDialogOpen(true);
 
     } catch (error) {
       console.error("[KPI Submit] Error submitting KPI data:", error);
