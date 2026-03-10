@@ -420,6 +420,7 @@ const ClientDashboard = () => {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Upload
             </Button>
+            <FilesDropdown />
             {roleData?.isAdmin && (
               <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
                 <Shield className="w-4 h-4 mr-2" />
