@@ -719,56 +719,40 @@ const KpiUpload = () => {
         </div>
       </main>
 
-      {/* Export Month Selection Dialog */}
-      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Select Months to Export</DialogTitle>
-            <DialogDescription>
-              Choose which months you want to include in the Excel export. Each month will be on its own sheet.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="max-h-64 overflow-y-auto space-y-2 py-4">
-            {availableMonths.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No data available to export.</p>
-            ) : (
-              <>
-                <div className="flex items-center space-x-2 pb-2 border-b border-border">
-                  <Checkbox
-                    id="select-all"
-                    checked={selectedExportMonths.size === availableMonths.length}
-                    onCheckedChange={toggleAllMonths}
-                  />
-                  <Label htmlFor="select-all" className="font-semibold">Select All</Label>
-                </div>
-                {availableMonths.map(({ year: y, month: m }) => {
-                  const key = `${y}-${m}`;
-                  return (
-                    <div key={key} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={key}
-                        checked={selectedExportMonths.has(key)}
-                        onCheckedChange={() => toggleMonthSelection(key)}
-                      />
-                      <Label htmlFor={key}>{MONTH_NAMES[m - 1]} {y}</Label>
-                    </div>
-                  );
-                })}
-              </>
-            )}
-          </div>
+      {/* Pre-submission Confirmation Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Submission</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are uploading <strong>{pendingFilledCount}</strong> values and leaving <strong>{pendingBlankCount}</strong> values blank. Please confirm your submission.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeSubmit}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleExportExcel} disabled={selectedExportMonths.size === 0 || isExporting}>
-              {isExporting ? "Exporting..." : `Export ${selectedExportMonths.size} Month(s)`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Post-submission Success Dialog */}
+      <AlertDialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              Submission Successful
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{pendingFilledCount}</strong> values uploaded. You may edit your entries at any time in the User Dashboard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setSuccessDialogOpen(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Missing Required Fields Dialog */}
       <AlertDialog open={missingFieldsDialogOpen} onOpenChange={setMissingFieldsDialogOpen}>
         <AlertDialogContent>
