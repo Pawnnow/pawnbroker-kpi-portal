@@ -125,11 +125,11 @@ const KpiUpload = () => {
   const [agedInventoryValues, setAgedInventoryValues] = useState<Record<string, string>>({});
   const [pawnBalanceValues, setPawnBalanceValues] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [availableMonths, setAvailableMonths] = useState<{ year: number; month: number }[]>([]);
-  const [selectedExportMonths, setSelectedExportMonths] = useState<Set<string>>(new Set());
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [pendingFilledCount, setPendingFilledCount] = useState(0);
+  const [pendingBlankCount, setPendingBlankCount] = useState(0);
   const [missingFieldsDialogOpen, setMissingFieldsDialogOpen] = useState(false);
   const [missingFieldLabels, setMissingFieldLabels] = useState<string[]>([]);
   const [draftStatus, setDraftStatus] = useState<string | null>(null);
