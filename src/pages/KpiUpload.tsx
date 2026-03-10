@@ -261,66 +261,8 @@ const KpiUpload = () => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2022 + 10 }, (_, i) => 2022 + i);
 
-  // Fetch available months when export dialog opens
-  useEffect(() => {
-    if (exportDialogOpen) {
-      fetchAvailableMonths();
-    }
-  }, [exportDialogOpen]);
 
-  const fetchAvailableMonths = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
 
-      const { data, error } = await supabase
-        .from("kpi_entries")
-        .select("year, month")
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      // Get unique year-month combinations
-      const uniqueMonths = new Map<string, { year: number; month: number }>();
-      data?.forEach(row => {
-        const key = `${row.year}-${row.month}`;
-        if (!uniqueMonths.has(key)) {
-          uniqueMonths.set(key, { year: row.year, month: row.month });
-        }
-      });
-
-      const sorted = Array.from(uniqueMonths.values()).sort((a, b) => {
-        if (a.year !== b.year) return b.year - a.year;
-        return b.month - a.month;
-      });
-
-      setAvailableMonths(sorted);
-      // Select all by default
-      setSelectedExportMonths(new Set(sorted.map(m => `${m.year}-${m.month}`)));
-    } catch (error) {
-      console.error("Error fetching available months:", error);
-    }
-  };
-
-  const toggleMonthSelection = (key: string) => {
-    setSelectedExportMonths(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(key)) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
-      }
-      return newSet;
-    });
-  };
-
-  const toggleAllMonths = () => {
-    if (selectedExportMonths.size === availableMonths.length) {
-      setSelectedExportMonths(new Set());
-    } else {
-      setSelectedExportMonths(new Set(availableMonths.map(m => `${m.year}-${m.month}`)));
-    }
-  };
 
   const handleClear = () => {
     clearDraft();
