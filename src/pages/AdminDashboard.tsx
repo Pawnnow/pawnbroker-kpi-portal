@@ -412,6 +412,9 @@ const AdminDashboard = () => {
         {/* Location Manager */}
         <LocationManager />
 
+        {/* Shared File Manager */}
+        <SharedFileManager />
+
         {/* Excel Integration for Admin */}
         <ExcelIntegration />
 
