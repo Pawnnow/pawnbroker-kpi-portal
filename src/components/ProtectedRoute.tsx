@@ -28,7 +28,7 @@ const ProtectedRoute = ({ children, skipPasswordCheck = false }: ProtectedRouteP
   });
   const location = useLocation();
   const navigate = useNavigate();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 
   // Helper to safely clear the auth timeout
