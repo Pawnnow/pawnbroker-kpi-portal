@@ -125,7 +125,7 @@ const KpiUpload = () => {
   const [missingFieldsDialogOpen, setMissingFieldsDialogOpen] = useState(false);
   const [missingFieldLabels, setMissingFieldLabels] = useState<string[]>([]);
   const [draftStatus, setDraftStatus] = useState<string | null>(null);
-  const draftTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [submissionBanner, setSubmissionBanner] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [lastSubmittedAt, setLastSubmittedAt] = useState<string | null>(null);
