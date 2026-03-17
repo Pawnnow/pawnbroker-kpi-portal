@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { CURRENCY_FIELDS } from "@/lib/utils";
+import KpiInfoBubble from "@/components/kpi/KpiInfoBubble";
 
 interface KpiField {
   name: string;
