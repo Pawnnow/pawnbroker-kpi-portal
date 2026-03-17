@@ -201,7 +201,7 @@ const ClientDashboard = () => {
       if (addingFieldName === fieldName) {
         return (
           <div key={fieldName} className="flex items-center justify-between gap-2">
-            <Label className="text-sm text-foreground flex-1">{fieldLabel}</Label>
+            <Label className="text-sm text-foreground flex-1 flex items-center gap-1">{fieldLabel} <KpiInfoBubble fieldName={fieldName} /></Label>
             <div className="flex items-center gap-1">
               <Input
                 value={addValue}
