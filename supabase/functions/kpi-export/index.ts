@@ -77,8 +77,8 @@ const ALL_KPI_COLUMNS = [
   "Radio Marketing", "TV Marketing", "Website", "Consulting",
   "Total Marketing Spent",
   "Num Google Reviews", "Num Buy Customers", "Num Retail Customers",
-  "Customer Traffic Through Door", "New Customers Past 30 Days",
-  "Unique Customers Past 30 Days", "Unique Customers Past 365 Days",
+  "Customer Traffic Through Door", "New Customers",
+  "Unique Customers", "Unique Customers 365 Days",
 ];
 
 const BATCH_SIZE = 1000;

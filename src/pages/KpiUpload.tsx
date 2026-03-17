@@ -87,9 +87,9 @@ const MARKETING_KPIS = [
   { name: "num_buy_customers", label: "# Buy Customers" },
   { name: "num_retail_customers", label: "# Retail Customers" },
   { name: "customer_traffic", label: "Customer Traffic (Through Door)" },
-  { name: "new_customers_30d", label: "New Customers (Past 30 Days)" },
-  { name: "unique_customers_30d", label: "Unique Customers (Past 30 Days)" },
-  { name: "unique_customers_365d", label: "Unique Customers (Past 365 Days)" },
+  { name: "new_customers_30d", label: "New Customers" },
+  { name: "unique_customers_30d", label: "Unique Customers" },
+  { name: "unique_customers_365d", label: "Unique Customers (365 Days)" },
 ];
 
 const AGED_INVENTORY_COLUMNS = ["Total #", "Total $", "Jewelry", "Electronics", "Tools", "Musical", "Games", "Firearms", "Coins Bullion", "Other"];
