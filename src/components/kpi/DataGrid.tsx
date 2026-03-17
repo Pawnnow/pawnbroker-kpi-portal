@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { isGridCurrencyField } from "@/lib/utils";
+import KpiInfoBubble from "@/components/kpi/KpiInfoBubble";
 
 interface DataGridProps {
   title: string;
@@ -11,9 +12,10 @@ interface DataGridProps {
   requiredRows?: string[];
   requiredColumn?: string;
   gridPrefix?: string; // e.g. "aged" or "pawn_balance" for currency detection
+  infoBubbleField?: string; // field name for KpiInfoBubble next to title
 }
 
-const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], requiredColumn, gridPrefix }: DataGridProps) => {
+const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], requiredColumn, gridPrefix, infoBubbleField }: DataGridProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateNumeric = (value: string): boolean => {
