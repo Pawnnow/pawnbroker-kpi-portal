@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { CURRENCY_FIELDS } from "@/lib/utils";
+import KpiInfoBubble from "@/components/kpi/KpiInfoBubble";
 
 interface KpiField {
   name: string;
@@ -45,9 +46,10 @@ const KpiInputColumn = ({ title, fields, values, onChange, category }: KpiInputC
           return (
           <div key={field.name} className="flex flex-col gap-1">
             <div className="flex items-center justify-between gap-4">
-              <Label htmlFor={field.name} className="text-sm text-foreground flex-1">
+              <Label htmlFor={field.name} className="text-sm text-foreground flex-1 flex items-center gap-1">
                 {field.label}
                 {field.isRequired && <span className="text-destructive ml-1">*</span>}
+                <KpiInfoBubble fieldName={field.name} />
               </Label>
               <div className="relative">
                 {isCurrency && (
