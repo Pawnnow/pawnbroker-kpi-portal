@@ -1,4 +1,4 @@
-import { KPI_INFO_IMAGES } from "@/lib/kpiInfoBubbles";
+import { KPI_INFO_IMAGES, KPI_INFO_TEXT } from "@/lib/kpiInfoBubbles";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface KpiInfoBubbleProps {
@@ -7,7 +7,8 @@ interface KpiInfoBubbleProps {
 
 const KpiInfoBubble = ({ fieldName }: KpiInfoBubbleProps) => {
   const imagePath = KPI_INFO_IMAGES[fieldName];
-  if (!imagePath) return null;
+  const textContent = KPI_INFO_TEXT[fieldName];
+  if (!imagePath && !textContent) return null;
 
   return (
     <Popover>
@@ -21,11 +22,15 @@ const KpiInfoBubble = ({ fieldName }: KpiInfoBubbleProps) => {
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto max-w-sm p-2" side="right" align="center">
-        <img
-          src={imagePath}
-          alt="KPI field info"
-          className="max-w-[300px] max-h-[400px] rounded object-contain"
-        />
+        {imagePath ? (
+          <img
+            src={imagePath}
+            alt="KPI field info"
+            className="max-w-[300px] max-h-[400px] rounded object-contain"
+          />
+        ) : (
+          <p className="text-sm text-foreground font-medium px-2 py-1">{textContent}</p>
+        )}
       </PopoverContent>
     </Popover>
   );
