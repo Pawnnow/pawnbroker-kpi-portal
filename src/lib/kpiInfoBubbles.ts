@@ -4,4 +4,5 @@ export const KPI_INFO_IMAGES: Record<string, string> = {
   "num_pawns_written": "/kpi-info/numwritten.jpg",
   "dollar_pawns_written": "/kpi-info/dollarwritten.jpg",
   "num_pawns_redeemed": "/kpi-info/pawnsredeemed.jpg",
+  "dollar_pawns_redeemed": "/kpi-info/dollarredeemed.jpg",
 };
