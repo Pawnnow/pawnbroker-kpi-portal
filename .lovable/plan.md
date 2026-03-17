@@ -1,31 +1,30 @@
 
 
-## Remove "(Past 30 Days)" and "(Past 365 Days)" from KPI Labels
+# Add Entry Creation for Empty Fields + Two-Decimal Limit
 
-Three files need updating to strip the parenthetical time-period suffixes from field labels:
+## Changes to `src/pages/ClientDashboard.tsx`
 
-### 1. `src/pages/KpiUpload.tsx`
-Remove `(Past 30 Days)` and `(Past 365 Days)` from the `label` values in the hardcoded field arrays. Affected labels:
-- `# Pawns Renewed (Past 30 Days)` → `# Pawns Renewed`
-- `$ Pawns Renewed (Past 30 Days)` → `$ Pawns Renewed`
-- `# Buys (Past 30 Days)` → `# Buys`
-- `$ Buys (Past 30 Days)` → `$ Buys`
-- `# Sales Transactions (Past 30 Days)` → `# Sales Transactions`
-- `New Customers (Past 30 Days)` → `New Customers`
-- `Unique Customers (Past 30 Days)` → `Unique Customers`
-- `Unique Customers (Past 365 Days)` → `Unique Customers (365)`
+1. **Add `handleCreate` function** — inserts a new `kpi_entries` row via Supabase with current user/year/month/location context, then appends to local state.
 
-Note: The two "Unique Customers" labels will need differentiation — will use "Unique Customers" and "Unique Customers (365 Days)" to keep them distinguishable.
+2. **Add `addingFieldName` state** — tracks which empty field is being filled (alongside existing `editingId`/`editValue`).
 
-### 2. Database migration
-Update `kpi_field_config` table labels to match, using:
-```sql
-UPDATE kpi_field_config SET field_label = '# Pawns Renewed' WHERE field_name = 'num_pawns_renewed_30d';
--- (same pattern for all affected rows)
-```
+3. **Update `renderFieldRow`** — empty fields (no entry) get a pencil icon; clicking opens inline input; save calls `handleCreate`.
 
-### 3. `supabase/functions/kpi-export/index.ts`
-Update the export column headers to match the shortened labels.
+4. **Update `renderReadOnlyGrid`** — same treatment for empty grid cells.
 
-No changes to field_name values or any other logic — purely cosmetic label updates.
+5. **Always show KPI layout** — remove the `entries.length === 0` gate that hides columns/grids. Show the field structure even when no data exists.
+
+6. **Two-decimal validation on inline edit inputs** — validate that values don't exceed 2 decimal places before saving. Pattern: `/^-?\d*\.?\d{0,2}$/`.
+
+## Changes to `src/components/kpi/KpiInputColumn.tsx`
+
+7. **Two-decimal validation** — update `validateNumeric` to reject values with more than 2 decimal places. Change pattern from `/^-?\d*\.?\d*$/` to `/^-?\d*\.?\d{0,2}$/`.
+
+## Changes to `src/components/kpi/DataGrid.tsx`
+
+8. **Two-decimal validation** — same pattern change in `validateNumeric`.
+
+## No database changes needed
+
+Existing RLS policies already allow users to insert their own entries.
 

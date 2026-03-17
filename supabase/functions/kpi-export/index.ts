@@ -60,14 +60,14 @@ const ALL_KPI_COLUMNS = [
   "Num Pawns Redeemed", "Dollar Pawns Redeemed",
   "Num Pawns Defaulted", "Dollar Pawns Defaulted",
   "PSC Collected",
-  "Num Pawns Renewed Past 30 Days", "Dollar Pawns Renewed Past 30 Days",
-  "Num Buys Past 30 Days", "Dollar Buys Past 30 Days",
+  "Num Pawns Renewed", "Dollar Pawns Renewed",
+  "Num Buys", "Dollar Buys",
   "Num Active Pawns", "Num Pawn Customers", "Unique Pawn Customers",
   // Merchandise KPIs (19)
   "Layaway Balance", "Num Active Layaways",
   "Num New Layaways Written", "Dollar New Layaways Written",
   "Num Redeemed Layaways", "Dollar Redeemed Layaways",
-  "Num Sales Transactions Past 30 Days", "Retail Sales",
+  "Num Sales Transactions", "Retail Sales",
   "Gross Sales", "COGS", "Gross Profits",
   "Scrap Sales", "COGS for Scrap",
   "Monthly Expenses", "Net Profit",
@@ -77,8 +77,8 @@ const ALL_KPI_COLUMNS = [
   "Radio Marketing", "TV Marketing", "Website", "Consulting",
   "Total Marketing Spent",
   "Num Google Reviews", "Num Buy Customers", "Num Retail Customers",
-  "Customer Traffic Through Door", "New Customers Past 30 Days",
-  "Unique Customers Past 30 Days", "Unique Customers Past 365 Days",
+  "Customer Traffic Through Door", "New Customers",
+  "Unique Customers", "Unique Customers 365 Days",
 ];
 
 const BATCH_SIZE = 1000;
