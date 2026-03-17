@@ -36,7 +36,10 @@ const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], r
 
   return (
     <div className="bg-card rounded-lg border border-border p-6">
-      <h3 className="text-lg font-bold text-foreground mb-4">{title}</h3>
+      <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+        {title}
+        {infoBubbleField && <KpiInfoBubble fieldName={infoBubbleField} />}
+      </h3>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
