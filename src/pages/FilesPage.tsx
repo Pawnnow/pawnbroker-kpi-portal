@@ -136,12 +136,20 @@ const FilesPage = () => {
                       </p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={getDownloadUrl(file.storage_path)} target="_blank" rel="noopener noreferrer" download>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </a>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={getDownloadUrl(file.storage_path)} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Open
+                      </a>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={getDownloadUrl(file.storage_path)} target="_blank" rel="noopener noreferrer" download>
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </a>
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
