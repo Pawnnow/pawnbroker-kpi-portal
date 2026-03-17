@@ -13,4 +13,5 @@ export const KPI_INFO_IMAGES: Record<string, string> = {
   "gross_profits": "/kpi-info/grossprofit.jpg",
   "buy_inventory": "/kpi-info/buyinventory.jpg",
   "merch_inventory": "/kpi-info/merchinventory.jpg",
+  "scrap_inventory": "/kpi-info/scrapinventory.jpg",
 };
