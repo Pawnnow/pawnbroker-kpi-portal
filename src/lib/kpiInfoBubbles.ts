@@ -19,4 +19,5 @@ export const KPI_INFO_IMAGES: Record<string, string> = {
 
 export const KPI_INFO_TEXT: Record<string, string> = {
   "new_customers_30d": "See Page 10 of the KPI Guide",
+  "aged_inventory_grid": "See Page 12 of the KPI Guide",
 };

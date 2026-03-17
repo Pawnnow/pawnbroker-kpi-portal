@@ -632,6 +632,7 @@ const KpiUpload = () => {
                     requiredRows={requiredAgedRows}
                     requiredColumn="Total $"
                     gridPrefix="aged"
+                    infoBubbleField="aged_inventory_grid"
                   />
                 )}
                 {showPawnBalanceGrid && (
