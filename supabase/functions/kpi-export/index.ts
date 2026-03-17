@@ -67,7 +67,7 @@ const ALL_KPI_COLUMNS = [
   "Layaway Balance", "Num Active Layaways",
   "Num New Layaways Written", "Dollar New Layaways Written",
   "Num Redeemed Layaways", "Dollar Redeemed Layaways",
-  "Num Sales Transactions Past 30 Days", "Retail Sales",
+  "Num Sales Transactions", "Retail Sales",
   "Gross Sales", "COGS", "Gross Profits",
   "Scrap Sales", "COGS for Scrap",
   "Monthly Expenses", "Net Profit",
