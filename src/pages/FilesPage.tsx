@@ -10,7 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Download, FileText } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, FileText } from "lucide-react";
 import { FILE_CATEGORIES } from "@/lib/fileCategories";
 import FilesDropdown from "@/components/FilesDropdown";
 import { useUserRole } from "@/hooks/useUserRole";
