@@ -16,3 +16,7 @@ export const KPI_INFO_IMAGES: Record<string, string> = {
   "scrap_inventory": "/kpi-info/scrapinventory.jpg",
   "layaway_inventory": "/kpi-info/layawayinventory.jpg",
 };
+
+export const KPI_INFO_TEXT: Record<string, string> = {
+  "new_customers_30d": "See Page 10 of the KPI Guide",
+};
