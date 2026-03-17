@@ -230,7 +230,7 @@ const ClientDashboard = () => {
       }
       return (
         <div key={fieldName} className="flex items-center justify-between gap-4">
-          <Label className="text-sm text-foreground flex-1">{fieldLabel}</Label>
+          <Label className="text-sm text-foreground flex-1 flex items-center gap-1">{fieldLabel} <KpiInfoBubble fieldName={fieldName} /></Label>
           <div className="flex items-center gap-1">
             <span className="w-32 text-right text-sm text-muted-foreground">—</span>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStartAdd(fieldName)}>
