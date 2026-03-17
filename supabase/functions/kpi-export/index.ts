@@ -60,8 +60,8 @@ const ALL_KPI_COLUMNS = [
   "Num Pawns Redeemed", "Dollar Pawns Redeemed",
   "Num Pawns Defaulted", "Dollar Pawns Defaulted",
   "PSC Collected",
-  "Num Pawns Renewed Past 30 Days", "Dollar Pawns Renewed Past 30 Days",
-  "Num Buys Past 30 Days", "Dollar Buys Past 30 Days",
+  "Num Pawns Renewed", "Dollar Pawns Renewed",
+  "Num Buys", "Dollar Buys",
   "Num Active Pawns", "Num Pawn Customers", "Unique Pawn Customers",
   // Merchandise KPIs (19)
   "Layaway Balance", "Num Active Layaways",
