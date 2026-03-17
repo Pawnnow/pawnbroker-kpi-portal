@@ -59,7 +59,7 @@ const MERCHANDISE_KPIS = [
   { name: "dollar_new_layaways", label: "$ New Layaways Written" },
   { name: "num_redeemed_layaways", label: "# Redeemed Layaways" },
   { name: "dollar_redeemed_layaways", label: "$ Redeemed Layaways" },
-  { name: "num_sales_transactions_30d", label: "# Sales Transactions (Past 30 Days)" },
+  { name: "num_sales_transactions_30d", label: "# Sales Transactions" },
   { name: "retail_sales", label: "Retail Sales" },
   { name: "gross_sales", label: "Gross Sales" },
   { name: "cogs", label: "COGS" },
