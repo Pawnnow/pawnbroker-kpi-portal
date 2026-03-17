@@ -1,30 +1,34 @@
 
 
-# Add Entry Creation for Empty Fields + Two-Decimal Limit
+# Implement "P" Info Bubbles for KPI Fields
 
-## Changes to `src/pages/ClientDashboard.tsx`
+Build the info bubble system from scratch, starting with two fields: **Ending Pawn Balance** and **# of Pawns at End of Month**.
 
-1. **Add `handleCreate` function** — inserts a new `kpi_entries` row via Supabase with current user/year/month/location context, then appends to local state.
+## Steps
 
-2. **Add `addingFieldName` state** — tracks which empty field is being filled (alongside existing `editingId`/`editValue`).
+### 1. Copy images to project
+- Copy `user-uploads://endingpawnbalance.jpg` → `public/kpi-info/endingpawnbalance.jpg`
+- Copy `user-uploads://pawnsendofmonth.jpg` → `public/kpi-info/pawnsendofmonth.jpg`
 
-3. **Update `renderFieldRow`** — empty fields (no entry) get a pencil icon; clicking opens inline input; save calls `handleCreate`.
+### 2. New file: `src/lib/kpiInfoBubbles.ts`
+Config map of field_name → image path:
+```ts
+export const KPI_INFO_IMAGES: Record<string, string> = {
+  "ending_pawn_balance": "/kpi-info/endingpawnbalance.jpg",
+  "num_pawns_end": "/kpi-info/pawnsendofmonth.jpg",
+};
+```
 
-4. **Update `renderReadOnlyGrid`** — same treatment for empty grid cells.
+### 3. New component: `src/components/kpi/KpiInfoBubble.tsx`
+- Takes `fieldName` prop
+- Looks up image from `KPI_INFO_IMAGES`; renders nothing if no match
+- Renders a small circular "P" badge (inline, ~18px, primary color)
+- On click, opens a shadcn `Popover` showing the image
 
-5. **Always show KPI layout** — remove the `entries.length === 0` gate that hides columns/grids. Show the field structure even when no data exists.
+### 4. Edit: `src/components/kpi/KpiInputColumn.tsx`
+- Import `KpiInfoBubble`
+- Next to each field label, render `<KpiInfoBubble fieldName={field.name} />`
 
-6. **Two-decimal validation on inline edit inputs** — validate that values don't exceed 2 decimal places before saving. Pattern: `/^-?\d*\.?\d{0,2}$/`.
-
-## Changes to `src/components/kpi/KpiInputColumn.tsx`
-
-7. **Two-decimal validation** — update `validateNumeric` to reject values with more than 2 decimal places. Change pattern from `/^-?\d*\.?\d*$/` to `/^-?\d*\.?\d{0,2}$/`.
-
-## Changes to `src/components/kpi/DataGrid.tsx`
-
-8. **Two-decimal validation** — same pattern change in `validateNumeric`.
-
-## No database changes needed
-
-Existing RLS policies already allow users to insert their own entries.
+### 5. Edit: `src/pages/ClientDashboard.tsx`
+- Same treatment in `renderFieldRow` — add `<KpiInfoBubble />` next to field labels
 
