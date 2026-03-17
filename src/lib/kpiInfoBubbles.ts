@@ -9,4 +9,5 @@ export const KPI_INFO_IMAGES: Record<string, string> = {
   "dollar_pawns_defaulted": "/kpi-info/dollardefault.jpg",
   "psc_collected": "/kpi-info/psccollected.png",
   "gross_sales": "/kpi-info/grosssales.jpg",
+  "cogs": "/kpi-info/cogs.jpg",
 };
