@@ -1,30 +1,48 @@
 
 
-# Add Entry Creation for Empty Fields + Two-Decimal Limit
+## Summary of All Updates
 
-## Changes to `src/pages/ClientDashboard.tsx`
+1. **Currency Selector (USD/CAD)** on the KPI Upload page — a simple dropdown defaulting to USD, placed to the left of the store selector. Single-store users see only the currency dropdown; multi-location users see both. The selected currency is included as a metadata entry when data is submitted.
 
-1. **Add `handleCreate` function** — inserts a new `kpi_entries` row via Supabase with current user/year/month/location context, then appends to local state.
+2. **Backfill existing data with USD** — a one-time database migration that inserts a `currency` metadata row (value "USD") for every unique user/year/month/location combination already in `kpi_entries`.
 
-2. **Add `addingFieldName` state** — tracks which empty field is being filled (alongside existing `editingId`/`editValue`).
+---
 
-3. **Update `renderFieldRow`** — empty fields (no entry) get a pencil icon; clicking opens inline input; save calls `handleCreate`.
+## Technical Details
 
-4. **Update `renderReadOnlyGrid`** — same treatment for empty grid cells.
+### 1. `src/pages/KpiUpload.tsx`
 
-5. **Always show KPI layout** — remove the `entries.length === 0` gate that hides columns/grids. Show the field structure even when no data exists.
+- Add `currency` state defaulting to `"USD"`
+- Add a currency selector card that **always** renders (not gated by `hasLocations`), placed before the store selector in the layout. When user has locations, both selectors appear side-by-side in a single card row; when no locations, only the currency selector shows.
+- On submit (`executeSubmit`), add a currency entry to the entries array:
+  ```ts
+  { field_name: "currency", field_label: "Currency", field_value: currency, category: "metadata" }
+  ```
+- Also delete the old `currency` field_name entry before re-inserting (already handled by the existing delete-then-insert logic, just need to ensure "currency" is in the fieldNames list)
+- Include `currency` in draft save/restore logic
+- When loading existing data for a period, check for an existing currency entry and pre-select it
 
-6. **Two-decimal validation on inline edit inputs** — validate that values don't exceed 2 decimal places before saving. Pattern: `/^-?\d*\.?\d{0,2}$/`.
+### 2. Database Migration (backfill)
 
-## Changes to `src/components/kpi/KpiInputColumn.tsx`
+```sql
+INSERT INTO kpi_entries (user_id, year, month, location_id, field_name, field_label, field_value, category)
+SELECT DISTINCT user_id, year, month, location_id, 'currency', 'Currency', 'USD', 'metadata'
+FROM kpi_entries
+WHERE NOT EXISTS (
+  SELECT 1 FROM kpi_entries e2
+  WHERE e2.user_id = kpi_entries.user_id
+    AND e2.year = kpi_entries.year
+    AND e2.month = kpi_entries.month
+    AND e2.location_id IS NOT DISTINCT FROM kpi_entries.location_id
+    AND e2.field_name = 'currency'
+);
+```
 
-7. **Two-decimal validation** — update `validateNumeric` to reject values with more than 2 decimal places. Change pattern from `/^-?\d*\.?\d*$/` to `/^-?\d*\.?\d{0,2}$/`.
+### 3. Export function (`supabase/functions/kpi-export/index.ts`)
 
-## Changes to `src/components/kpi/DataGrid.tsx`
+Add "Currency" as a column in the export output so admins can see which currency was used per submission.
 
-8. **Two-decimal validation** — same pattern change in `validateNumeric`.
+### No schema changes needed
 
-## No database changes needed
-
-Existing RLS policies already allow users to insert their own entries.
+The existing `kpi_entries` table supports arbitrary field names. No new tables or columns required.
 
