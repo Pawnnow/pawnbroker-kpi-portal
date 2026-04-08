@@ -460,6 +460,18 @@ const KpiUpload = () => {
         }
       });
 
+      // Add currency metadata entry
+      entries.push({
+        user_id: user.id,
+        year,
+        month,
+        field_name: "currency",
+        field_label: "Currency",
+        field_value: currency,
+        category: "metadata",
+        ...(locationId && { location_id: locationId }),
+      });
+
       if (entries.length === 0) {
         toast({
           title: "No data to submit",
