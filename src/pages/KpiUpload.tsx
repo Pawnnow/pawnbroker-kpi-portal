@@ -575,27 +575,43 @@ const KpiUpload = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-8">
-          {/* Store Location Selector */}
-          {hasLocations && (
-            <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-                <Store className="w-5 h-5" />
-                Select Store
-              </h2>
-              <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a store location..." />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border z-50">
-                  {locations!.map((loc) => (
-                    <SelectItem key={loc.id} value={loc.id}>
-                      {loc.store_code} - {loc.store_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Currency & Store Selectors */}
+          <div className="bg-card rounded-lg border border-border p-6">
+            <div className={`grid gap-6 ${hasLocations ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 max-w-xs'}`}>
+              <div>
+                <Label htmlFor="currency" className="mb-2 block font-bold text-foreground">Currency</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger id="currency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border z-50">
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="CAD">CAD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {hasLocations && (
+                <div>
+                  <Label className="mb-2 block font-bold text-foreground flex items-center gap-2">
+                    <Store className="w-4 h-4" />
+                    Select Store
+                  </Label>
+                  <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a store location..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border z-50">
+                      {locations!.map((loc) => (
+                        <SelectItem key={loc.id} value={loc.id}>
+                          {loc.store_code} - {loc.store_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Year and Month Selection */}
           <div className="bg-card rounded-lg border border-border p-6">
