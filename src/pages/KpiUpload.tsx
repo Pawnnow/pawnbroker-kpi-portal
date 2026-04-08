@@ -118,6 +118,7 @@ const KpiUpload = () => {
   const [pawnBalanceValues, setPawnBalanceValues] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const [currency, setCurrency] = useState<string>("USD");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [pendingFilledCount, setPendingFilledCount] = useState(0);
@@ -154,13 +155,13 @@ const KpiUpload = () => {
     });
   }, []);
 
-  // Fetch last submitted timestamp when year/month/location changes
+  // Fetch last submitted timestamp and existing currency when year/month/location changes
   useEffect(() => {
     if (!userId || !year || !month) {
       setLastSubmittedAt(null);
       return;
     }
-    const fetchLastSubmitted = async () => {
+    const fetchPeriodMeta = async () => {
       let query = supabase
         .from("kpi_entries")
         .select("updated_at")
@@ -182,8 +183,31 @@ const KpiUpload = () => {
       } else {
         setLastSubmittedAt(null);
       }
+
+      // Load existing currency for this period
+      let currQuery = supabase
+        .from("kpi_entries")
+        .select("field_value")
+        .eq("user_id", userId)
+        .eq("year", year)
+        .eq("month", month)
+        .eq("field_name", "currency")
+        .limit(1);
+
+      if (hasLocations && selectedLocationId) {
+        currQuery = currQuery.eq("location_id", selectedLocationId);
+      } else {
+        currQuery = currQuery.is("location_id", null);
+      }
+
+      const { data: currData } = await currQuery;
+      if (currData && currData.length > 0 && currData[0].field_value) {
+        setCurrency(currData[0].field_value);
+      } else {
+        setCurrency("USD");
+      }
     };
-    fetchLastSubmitted();
+    fetchPeriodMeta();
   }, [userId, year, month, selectedLocationId, hasLocations]);
 
   // Draft key helper
@@ -208,7 +232,7 @@ const KpiUpload = () => {
       try {
         localStorage.setItem(key, JSON.stringify({
           pawnValues, merchandiseValues, marketingValues,
-          agedInventoryValues, pawnBalanceValues,
+          agedInventoryValues, pawnBalanceValues, currency,
         }));
         setDraftStatus("Saved locally (not submitted)");
         setTimeout(() => setDraftStatus(null), 3000);
@@ -218,7 +242,7 @@ const KpiUpload = () => {
     }, 1000);
 
     return () => { if (draftTimerRef.current) clearTimeout(draftTimerRef.current); };
-  }, [pawnValues, merchandiseValues, marketingValues, agedInventoryValues, pawnBalanceValues, getDraftKey]);
+  }, [pawnValues, merchandiseValues, marketingValues, agedInventoryValues, pawnBalanceValues, currency, getDraftKey]);
 
   // Restore draft when year/month/location changes
   useEffect(() => {
@@ -233,6 +257,7 @@ const KpiUpload = () => {
         setMarketingValues(draft.marketingValues || {});
         setAgedInventoryValues(draft.agedInventoryValues || {});
         setPawnBalanceValues(draft.pawnBalanceValues || {});
+        if (draft.currency) setCurrency(draft.currency);
         toast({ title: "Draft restored", description: "Previously saved inputs have been loaded." });
       }
     } catch (e) {
