@@ -355,7 +355,8 @@ serve(async (req) => {
               user_name: userName,
               user_email: profile?.email || 'Unknown',
               group: getGroupLabel(profile?.group ?? null),
-              ...(loc && { store_name: loc.store_name })
+              store_code: loc ? loc.store_code : (profile?.user_name || null),
+              store_name: loc ? loc.store_name : null
             })
           };
           
