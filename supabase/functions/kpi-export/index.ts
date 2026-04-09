@@ -351,6 +351,7 @@ serve(async (req) => {
             year: row.year,
             month: row.month,
             month_name: getMonthName(row.month),
+            currency: getCurrency(row),
             ...(isAdmin && { 
               user_id: String(row.user_id),
               user_name: userName,
