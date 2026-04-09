@@ -385,7 +385,7 @@ serve(async (req) => {
       responseData = Array.from(pivotMap.values());
     } else {
       // Long format (default) - convert numeric values
-      responseData = kpiData?.map(row => {
+      responseData = nonMetadataData.map(row => {
         const profile = userProfiles[row.user_id];
         const userName = resolveUserName(row);
         const loc = row.location_id ? locationMap[row.location_id] : null;
@@ -393,6 +393,7 @@ serve(async (req) => {
           year: row.year,
           month: row.month,
           month_name: getMonthName(row.month),
+          currency: getCurrency(row),
           category: row.category,
           field_name: row.field_name,
           field_label: row.field_label,
