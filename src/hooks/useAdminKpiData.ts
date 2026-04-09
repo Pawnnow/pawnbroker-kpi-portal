@@ -73,6 +73,13 @@ export const useAdminKpiData = () => {
 
       const emailMap = new Map(profiles?.map(p => [p.id, p.email]) || []);
 
+      // Build a user_name map for fallback store_code (single-store accounts)
+      const { data: allProfiles } = await supabase
+        .from("profiles")
+        .select("id, user_name")
+        .in("id", userIds);
+      const userNameMap = new Map(allProfiles?.map(p => [p.id, p.user_name]) || []);
+
       // Fetch all locations for store_code lookup
       const locationIds = [...new Set(data?.filter(d => d.location_id).map(d => d.location_id) || [])];
       let locationMap = new Map<string, { store_code: string; store_name: string }>();
