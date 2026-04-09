@@ -54,8 +54,6 @@ const parseNumericValue = (value: string | null): string | number | null => {
 // Define ALL expected KPI columns to ensure consistent export structure
 // These match the field_labels in the KPI upload form (with $ → Dollar, # → Num)
 const ALL_KPI_COLUMNS = [
-  // Metadata
-  "Currency",
   // Pawn KPIs (16)
   "Ending Pawn Balance", "Num of Pawns at End of Month",
   "Num Pawns Written", "Dollar Pawns Written",
@@ -309,6 +307,25 @@ serve(async (req) => {
       return userProfiles[row.user_id]?.user_name || null;
     };
 
+    // Build currency lookup: user_id-location_id-year-month → currency value
+    const currencyMap = new Map<string, string>();
+    kpiData?.forEach(row => {
+      if (row.field_name === 'currency' && row.category === 'metadata') {
+        const locKey = row.location_id || 'none';
+        const key = `${row.user_id}-${locKey}-${row.year}-${row.month}`;
+        currencyMap.set(key, row.field_value || 'USD');
+      }
+    });
+
+    const getCurrency = (row: any): string => {
+      const locKey = row.location_id || 'none';
+      const key = `${row.user_id}-${locKey}-${row.year}-${row.month}`;
+      return currencyMap.get(key) || 'USD';
+    };
+
+    // Filter out metadata rows from the output (currency is now a column)
+    const nonMetadataData = kpiData?.filter(row => row.category !== 'metadata') || [];
+
     // Format response based on requested format
     let responseData;
     
@@ -316,7 +333,7 @@ serve(async (req) => {
       // Pivot data to wide format: one row per user/year/month with ALL KPI fields from all categories
       const pivotMap = new Map<string, Record<string, any>>();
       
-      kpiData?.forEach(row => {
+      nonMetadataData.forEach(row => {
         // Group by user/location/year/month so each location gets its own row
         const locationKey = row.location_id || 'none';
         const key = isAdmin 
@@ -332,6 +349,7 @@ serve(async (req) => {
             year: row.year,
             month: row.month,
             month_name: getMonthName(row.month),
+            currency: getCurrency(row),
             ...(isAdmin && { 
               user_id: String(row.user_id),
               user_name: userName,
@@ -365,7 +383,7 @@ serve(async (req) => {
       responseData = Array.from(pivotMap.values());
     } else {
       // Long format (default) - convert numeric values
-      responseData = kpiData?.map(row => {
+      responseData = nonMetadataData.map(row => {
         const profile = userProfiles[row.user_id];
         const userName = resolveUserName(row);
         const loc = row.location_id ? locationMap[row.location_id] : null;
@@ -373,6 +391,7 @@ serve(async (req) => {
           year: row.year,
           month: row.month,
           month_name: getMonthName(row.month),
+          currency: getCurrency(row),
           category: row.category,
           field_name: row.field_name,
           field_label: row.field_label,
