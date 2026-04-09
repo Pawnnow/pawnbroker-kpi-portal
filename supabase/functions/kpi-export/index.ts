@@ -335,7 +335,7 @@ serve(async (req) => {
       // Pivot data to wide format: one row per user/year/month with ALL KPI fields from all categories
       const pivotMap = new Map<string, Record<string, any>>();
       
-      kpiData?.forEach(row => {
+      nonMetadataData.forEach(row => {
         // Group by user/location/year/month so each location gets its own row
         const locationKey = row.location_id || 'none';
         const key = isAdmin 
