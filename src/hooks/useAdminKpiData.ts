@@ -101,7 +101,7 @@ export const useAdminKpiData = () => {
         return {
           ...entry,
           user_email: emailMap.get(entry.user_id) || "Unknown",
-          store_code: loc?.store_code || null,
+          store_code: loc?.store_code || userNameMap.get(entry.user_id) || null,
           store_name: loc?.store_name || null,
         };
       }) as AdminKpiEntry[];
