@@ -54,8 +54,6 @@ const parseNumericValue = (value: string | null): string | number | null => {
 // Define ALL expected KPI columns to ensure consistent export structure
 // These match the field_labels in the KPI upload form (with $ → Dollar, # → Num)
 const ALL_KPI_COLUMNS = [
-  // Metadata
-  "Currency",
   // Pawn KPIs (16)
   "Ending Pawn Balance", "Num of Pawns at End of Month",
   "Num Pawns Written", "Dollar Pawns Written",
