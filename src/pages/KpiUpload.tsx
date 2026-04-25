@@ -649,65 +649,108 @@ const KpiUpload = () => {
           {/* KPI Input Columns */}
           {fieldConfigLoading ? (
             <p className="text-muted-foreground text-center py-8">Loading fields...</p>
-          ) : (
-            <>
-              {(() => {
-                const columns = [
-                  { title: "Pawn KPIs", fields: pawnKpis, values: pawnValues, onChange: (name: string, value: string) => setPawnValues({ ...pawnValues, [name]: value }), category: "pawn" as const },
-                  { title: "Merchandise KPIs", fields: merchandiseKpis, values: merchandiseValues, onChange: (name: string, value: string) => setMerchandiseValues({ ...merchandiseValues, [name]: value }), category: "merchandise" as const },
-                  { title: "Marketing KPIs", fields: marketingKpis, values: marketingValues, onChange: (name: string, value: string) => setMarketingValues({ ...marketingValues, [name]: value }), category: "marketing" as const },
-                ].filter((col) => col.fields.length > 0);
+          ) : (() => {
+            const allColumns = [
+              { title: "Pawn KPIs", fields: pawnKpis, values: pawnValues, onChange: (name: string, value: string) => setPawnValues({ ...pawnValues, [name]: value }), category: "pawn" as const },
+              { title: "Merchandise KPIs", fields: merchandiseKpis, values: merchandiseValues, onChange: (name: string, value: string) => setMerchandiseValues({ ...merchandiseValues, [name]: value }), category: "merchandise" as const },
+              { title: "Marketing KPIs", fields: marketingKpis, values: marketingValues, onChange: (name: string, value: string) => setMarketingValues({ ...marketingValues, [name]: value }), category: "marketing" as const },
+            ];
 
-                const gridClass = columns.length === 3
-                  ? "grid grid-cols-1 lg:grid-cols-3 gap-6"
-                  : columns.length === 2
-                  ? "grid grid-cols-1 lg:grid-cols-2 gap-6"
-                  : "grid grid-cols-1 gap-6";
+            const basicColumns = allColumns
+              .map((col) => ({ ...col, fields: col.fields.filter((f) => requiredFieldNames.includes(f.name)) }))
+              .filter((col) => col.fields.length > 0);
+            const advancedColumns = allColumns.filter((col) => col.fields.length > 0);
 
-                return columns.length > 0 ? (
-                  <div className={gridClass}>
-                    {columns.map((col) => (
-                      <KpiInputColumn
-                        key={col.category}
-                        title={col.title}
-                        fields={col.fields}
-                        values={col.values}
-                        onChange={col.onChange}
-                        category={col.category}
-                      />
-                    ))}
-                  </div>
-                ) : null;
-              })()}
+            const gridClassFor = (n: number) =>
+              n >= 3 ? "grid grid-cols-1 lg:grid-cols-3 gap-6"
+                : n === 2 ? "grid grid-cols-1 lg:grid-cols-2 gap-6"
+                : "grid grid-cols-1 gap-6";
 
-              {/* Data Grids */}
-              <div className="space-y-6">
-                {showAgedInventoryGrid && (
-                  <DataGrid
-                    title="Aged Inventory Grid"
-                    columns={visibleAgedInventoryColumns}
-                    rows={AGED_INVENTORY_ROWS}
-                    values={agedInventoryValues}
-                    onChange={(key, value) => setAgedInventoryValues({ ...agedInventoryValues, [key]: value })}
-                    requiredRows={requiredAgedRows}
-                    requiredColumn="Total $"
-                    gridPrefix="aged"
-                    infoBubbleField="aged_inventory_grid"
+            const renderColumns = (cols: typeof allColumns) => cols.length > 0 ? (
+              <div className={gridClassFor(cols.length)}>
+                {cols.map((col) => (
+                  <KpiInputColumn
+                    key={col.category}
+                    title={col.title}
+                    fields={col.fields}
+                    values={col.values}
+                    onChange={col.onChange}
+                    category={col.category}
                   />
-                )}
-                {showPawnBalanceGrid && (
-                  <DataGrid
-                    title="Pawn Balance Breakdown Grid"
-                    columns={PAWN_BALANCE_COLUMNS}
-                    rows={PAWN_BALANCE_ROWS}
-                    values={pawnBalanceValues}
-                    onChange={(key, value) => setPawnBalanceValues({ ...pawnBalanceValues, [key]: value })}
-                    gridPrefix="pawn_balance"
-                  />
-                )}
+                ))}
               </div>
-            </>
-          )}
+            ) : null;
+
+            const basicHasAged = showAgedInventoryGrid && requiredAgedRows.length > 0;
+            const basicHasContent = basicColumns.length > 0 || basicHasAged;
+
+            return (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full max-w-md grid-cols-2">
+                  <TabsTrigger value="basic">Basic</TabsTrigger>
+                  <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="basic" className="space-y-6 mt-6">
+                  {basicHasContent ? (
+                    <>
+                      {renderColumns(basicColumns)}
+                      {basicHasAged && (
+                        <DataGrid
+                          title="Aged Inventory Grid"
+                          columns={visibleAgedInventoryColumns}
+                          rows={AGED_INVENTORY_ROWS}
+                          values={agedInventoryValues}
+                          onChange={(key, value) => setAgedInventoryValues({ ...agedInventoryValues, [key]: value })}
+                          requiredRows={requiredAgedRows}
+                          requiredColumn="Total $"
+                          gridPrefix="aged"
+                          infoBubbleField="aged_inventory_grid"
+                          visibleRows={requiredAgedRows}
+                          visibleColumns={["Total $"]}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <div className="bg-card rounded-lg border border-border p-8 text-center">
+                      <p className="text-muted-foreground">
+                        No required fields are configured. Switch to the <strong>Advanced</strong> tab to enter data.
+                      </p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="advanced" className="space-y-6 mt-6">
+                  {renderColumns(advancedColumns)}
+                  <div className="space-y-6">
+                    {showAgedInventoryGrid && (
+                      <DataGrid
+                        title="Aged Inventory Grid"
+                        columns={visibleAgedInventoryColumns}
+                        rows={AGED_INVENTORY_ROWS}
+                        values={agedInventoryValues}
+                        onChange={(key, value) => setAgedInventoryValues({ ...agedInventoryValues, [key]: value })}
+                        requiredRows={requiredAgedRows}
+                        requiredColumn="Total $"
+                        gridPrefix="aged"
+                        infoBubbleField="aged_inventory_grid"
+                      />
+                    )}
+                    {showPawnBalanceGrid && (
+                      <DataGrid
+                        title="Pawn Balance Breakdown Grid"
+                        columns={PAWN_BALANCE_COLUMNS}
+                        rows={PAWN_BALANCE_ROWS}
+                        values={pawnBalanceValues}
+                        onChange={(key, value) => setPawnBalanceValues({ ...pawnBalanceValues, [key]: value })}
+                        gridPrefix="pawn_balance"
+                      />
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            );
+          })()}
 
 
           {/* Submission Banner */}
