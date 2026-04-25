@@ -13,9 +13,13 @@ interface DataGridProps {
   requiredColumn?: string;
   gridPrefix?: string; // e.g. "aged" or "pawn_balance" for currency detection
   infoBubbleField?: string; // field name for KpiInfoBubble next to title
+  visibleRows?: string[]; // optional filter — only render rows in this list
+  visibleColumns?: string[]; // optional filter — only render columns in this list
 }
 
-const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], requiredColumn, gridPrefix, infoBubbleField }: DataGridProps) => {
+const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], requiredColumn, gridPrefix, infoBubbleField, visibleRows, visibleColumns }: DataGridProps) => {
+  const displayedRows = visibleRows ? rows.filter((r) => visibleRows.includes(r)) : rows;
+  const displayedColumns = visibleColumns ? columns.filter((c) => visibleColumns.includes(c)) : columns;
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateNumeric = (value: string): boolean => {
@@ -45,7 +49,7 @@ const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], r
           <thead>
             <tr>
               <th className="border border-border bg-secondary p-2 text-left font-bold text-sm"></th>
-              {columns.map((col) => (
+              {displayedColumns.map((col) => (
                 <th key={col} className="border border-border bg-secondary p-2 text-center font-bold text-sm min-w-[100px]">
                   {col}
                 </th>
@@ -53,7 +57,7 @@ const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], r
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => {
+            {displayedRows.map((row) => {
               const isRequired = requiredRows.includes(row);
               return (
               <tr key={row}>
@@ -61,7 +65,7 @@ const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], r
                   {row}
               {isRequired && <span className="text-destructive ml-1">*</span>}
                 </td>
-                {columns.map((col) => {
+                {displayedColumns.map((col) => {
                    // Sanitize column name to avoid collisions (e.g., "Total #" vs "Total $")
                   const sanitizedCol = col.replace('#', 'Num').replace('$', 'Dollar');
                   const key = `${row}_${sanitizedCol}`;
