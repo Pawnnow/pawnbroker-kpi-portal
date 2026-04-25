@@ -13,9 +13,13 @@ interface DataGridProps {
   requiredColumn?: string;
   gridPrefix?: string; // e.g. "aged" or "pawn_balance" for currency detection
   infoBubbleField?: string; // field name for KpiInfoBubble next to title
+  visibleRows?: string[]; // optional filter — only render rows in this list
+  visibleColumns?: string[]; // optional filter — only render columns in this list
 }
 
-const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], requiredColumn, gridPrefix, infoBubbleField }: DataGridProps) => {
+const DataGrid = ({ title, columns, rows, values, onChange, requiredRows = [], requiredColumn, gridPrefix, infoBubbleField, visibleRows, visibleColumns }: DataGridProps) => {
+  const displayedRows = visibleRows ? rows.filter((r) => visibleRows.includes(r)) : rows;
+  const displayedColumns = visibleColumns ? columns.filter((c) => visibleColumns.includes(c)) : columns;
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateNumeric = (value: string): boolean => {

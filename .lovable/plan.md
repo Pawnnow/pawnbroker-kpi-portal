@@ -1,48 +1,54 @@
+# Add Basic/Advanced Tabs to KPI Upload Portal
 
+## Goal
+Reduce client overwhelm by introducing a **Basic** tab (default) showing only mandatory fields, alongside an **Advanced** tab containing the full existing layout. Data entered on either tab is shared, so switching tabs preserves input for the selected period.
 
-## Summary of All Updates
+## Implementation
 
-1. **Currency Selector (USD/CAD)** on the KPI Upload page — a simple dropdown defaulting to USD, placed to the left of the store selector. Single-store users see only the currency dropdown; multi-location users see both. The selected currency is included as a metadata entry when data is submitted.
+### File: `src/pages/KpiUpload.tsx`
+1. **Add Tabs UI** using existing `@/components/ui/tabs`:
+   - Two triggers: **Basic** (default) and **Advanced**.
+   - Tabs wrap the three KPI columns + Pawn Balance Grid + Aged Inventory Grid section.
+   - Header, period selector, submit button, and confirmation dialogs remain outside the tabs (shared).
 
-2. **Backfill existing data with USD** — a one-time database migration that inserts a `currency` metadata row (value "USD") for every unique user/year/month/location combination already in `kpi_entries`.
+2. **Shared State**:
+   - Both tabs read from and write to the same existing state (`pawnValues`, `merchandiseValues`, `marketingValues`, `pawnBalanceGrid`, `agedInventoryGrid`).
+   - Switching tabs is purely a display filter — no data copying needed.
 
----
+3. **Basic Tab Content**:
+   - Filter each column's fields against `requiredFieldNames` from `useVisibleKpiFields()`:
+     ```ts
+     const basicPawn = pawnKpis.filter(f => requiredFieldNames.includes(f.name));
+     const basicMerch = merchandiseKpis.filter(f => requiredFieldNames.includes(f.name));
+     const basicMarketing = marketingKpis.filter(f => requiredFieldNames.includes(f.name));
+     ```
+   - Render `KpiInputColumn` for each, but hide any column whose filtered list is empty.
+   - **Aged Inventory Grid**: Show only if `requiredAgedRows.length > 0`, and render only those rows (reuse existing grid component with a `visibleRows` prop, or conditionally render rows inside).
+   - **Pawn Balance Grid**: Hidden in Basic mode (no per-cell mandatory flag exists today).
+   - If Basic has zero required fields configured, show a friendly note: "No required fields configured. Switch to Advanced to enter data."
 
-## Technical Details
+4. **Advanced Tab Content**:
+   - Renders the existing layout exactly as it is today (no changes to behavior).
 
-### 1. `src/pages/KpiUpload.tsx`
+5. **Tab Persistence**:
+   - Persist active tab in `localStorage` under key `kpi-upload-tab` (default `"basic"`).
+   - Restore on mount.
 
-- Add `currency` state defaulting to `"USD"`
-- Add a currency selector card that **always** renders (not gated by `hasLocations`), placed before the store selector in the layout. When user has locations, both selectors appear side-by-side in a single card row; when no locations, only the currency selector shows.
-- On submit (`executeSubmit`), add a currency entry to the entries array:
-  ```ts
-  { field_name: "currency", field_label: "Currency", field_value: currency, category: "metadata" }
-  ```
-- Also delete the old `currency` field_name entry before re-inserting (already handled by the existing delete-then-insert logic, just need to ensure "currency" is in the fieldNames list)
-- Include `currency` in draft save/restore logic
-- When loading existing data for a period, check for an existing currency entry and pre-select it
+6. **Submission**:
+   - Submit button stays global (outside tabs).
+   - Validation continues to check **all** required fields regardless of active tab.
+   - If a required field is missing and the user is on Basic, the existing "missing fields" alert dialog already lists field labels — no change needed.
 
-### 2. Database Migration (backfill)
+### File: `src/components/kpi/AgedInventoryGrid.tsx` (if separate component)
+- Add an optional `visibleRows?: string[]` prop. When provided, only those row labels render. Default behavior unchanged.
+- (If the grid is inlined in `KpiUpload.tsx`, apply the row filter directly there.)
 
-```sql
-INSERT INTO kpi_entries (user_id, year, month, location_id, field_name, field_label, field_value, category)
-SELECT DISTINCT user_id, year, month, location_id, 'currency', 'Currency', 'USD', 'metadata'
-FROM kpi_entries
-WHERE NOT EXISTS (
-  SELECT 1 FROM kpi_entries e2
-  WHERE e2.user_id = kpi_entries.user_id
-    AND e2.year = kpi_entries.year
-    AND e2.month = kpi_entries.month
-    AND e2.location_id IS NOT DISTINCT FROM kpi_entries.location_id
-    AND e2.field_name = 'currency'
-);
-```
+## Out of Scope
+- No DB schema changes.
+- No changes to admin Field Visibility Manager or mandatory-field configuration.
+- No changes to export logic or submission payload.
+- Pawn Balance Grid remains Advanced-only until per-cell mandatory flags are introduced (future enhancement).
 
-### 3. Export function (`supabase/functions/kpi-export/index.ts`)
-
-Add "Currency" as a column in the export output so admins can see which currency was used per submission.
-
-### No schema changes needed
-
-The existing `kpi_entries` table supports arbitrary field names. No new tables or columns required.
-
+## Files to Edit
+- `src/pages/KpiUpload.tsx` (primary)
+- `src/components/kpi/AgedInventoryGrid.tsx` *(only if grid is a separate component — confirmed during implementation)*
