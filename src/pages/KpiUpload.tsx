@@ -131,6 +131,12 @@ const KpiUpload = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [submissionBanner, setSubmissionBanner] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [lastSubmittedAt, setLastSubmittedAt] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    try { return localStorage.getItem("kpi-upload-tab") || "basic"; } catch { return "basic"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("kpi-upload-tab", activeTab); } catch {}
+  }, [activeTab]);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
