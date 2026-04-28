@@ -732,7 +732,7 @@ const KpiUpload = () => {
               </div>
             ) : null;
 
-            const basicHasAged = showAgedInventoryGrid && requiredAgedRows.length > 0;
+            const basicHasAged = showAgedInventoryGrid && basicAgedRows.length > 0;
             const basicHasContent = basicColumns.length > 0 || basicHasAged;
 
             return (
@@ -753,11 +753,11 @@ const KpiUpload = () => {
                           rows={AGED_INVENTORY_ROWS}
                           values={agedInventoryValues}
                           onChange={(key, value) => setAgedInventoryValues({ ...agedInventoryValues, [key]: value })}
-                          requiredRows={requiredAgedRows}
+                          requiredRows={basicAgedRows}
                           requiredColumn="Total $"
                           gridPrefix="aged"
                           infoBubbleField="aged_inventory_grid"
-                          visibleRows={requiredAgedRows}
+                          visibleRows={basicAgedRows}
                           visibleColumns={["Total $"]}
                         />
                       )}
