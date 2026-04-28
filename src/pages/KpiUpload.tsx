@@ -658,7 +658,14 @@ const KpiUpload = () => {
           ) : (() => {
             // Unified change handler routes a value to the correct state bucket
             // (pawn/merchandise/marketing) based on the field's source category.
+            // Also handles the UI-only "aged_365_proxy" which writes to the
+            // Aged Inventory grid 365+ Days / Total $ cell.
+            const AGED_365_KEY = "365+ Days_Total Dollar";
             const handleFieldChange = (name: string, value: string) => {
+              if (name === "aged_365_proxy") {
+                setAgedInventoryValues({ ...agedInventoryValues, [AGED_365_KEY]: value });
+                return;
+              }
               const cat = fieldNameToCategory[name];
               if (cat === "pawn") setPawnValues({ ...pawnValues, [name]: value });
               else if (cat === "merchandise") setMerchandiseValues({ ...merchandiseValues, [name]: value });
@@ -666,6 +673,7 @@ const KpiUpload = () => {
             };
 
             const valueFor = (name: string): string => {
+              if (name === "aged_365_proxy") return agedInventoryValues[AGED_365_KEY] ?? "";
               const cat = fieldNameToCategory[name];
               if (cat === "pawn") return pawnValues[name] ?? "";
               if (cat === "merchandise") return merchandiseValues[name] ?? "";
@@ -688,8 +696,24 @@ const KpiUpload = () => {
               { key: "customer_marketing", title: "Customer & Marketing", fields: customerMarketingKpis },
             ];
 
+            // Basic view only: inject the "$ Inventory 365+ Days" proxy under
+            // Merchandise Performance when that aged row is required, and hide
+            // it from the Aged Inventory grid below to avoid duplication.
+            const aged365Required = requiredAgedRows.includes("365+ Days");
+            const basicAgedRows = aged365Required
+              ? requiredAgedRows.filter((r) => r !== "365+ Days")
+              : requiredAgedRows;
             const basicColumns = allColumns
-              .map((col) => ({ ...col, fields: col.fields.filter((f) => requiredFieldNames.includes(f.name)) }))
+              .map((col) => {
+                let fields = col.fields.filter((f) => requiredFieldNames.includes(f.name));
+                if (col.key === "merchandise_performance" && aged365Required) {
+                  fields = [
+                    ...fields,
+                    { name: "aged_365_proxy", label: "$ Inventory 365+ Days", isRequired: true },
+                  ];
+                }
+                return { ...col, fields };
+              })
               .filter((col) => col.fields.length > 0);
             const advancedColumns = allColumns.filter((col) => col.fields.length > 0);
 
@@ -708,7 +732,7 @@ const KpiUpload = () => {
               </div>
             ) : null;
 
-            const basicHasAged = showAgedInventoryGrid && requiredAgedRows.length > 0;
+            const basicHasAged = showAgedInventoryGrid && basicAgedRows.length > 0;
             const basicHasContent = basicColumns.length > 0 || basicHasAged;
 
             return (
@@ -729,11 +753,11 @@ const KpiUpload = () => {
                           rows={AGED_INVENTORY_ROWS}
                           values={agedInventoryValues}
                           onChange={(key, value) => setAgedInventoryValues({ ...agedInventoryValues, [key]: value })}
-                          requiredRows={requiredAgedRows}
+                          requiredRows={basicAgedRows}
                           requiredColumn="Total $"
                           gridPrefix="aged"
                           infoBubbleField="aged_inventory_grid"
-                          visibleRows={requiredAgedRows}
+                          visibleRows={basicAgedRows}
                           visibleColumns={["Total $"]}
                         />
                       )}
