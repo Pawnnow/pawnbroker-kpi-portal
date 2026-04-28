@@ -1,6 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export type ColumnGroup =
+  | "pawn_performance"
+  | "merchandise_performance"
+  | "financial_summary"
+  | "customer_marketing";
+
 interface KpiFieldConfig {
   id: string;
   field_name: string;
@@ -9,6 +15,7 @@ interface KpiFieldConfig {
   is_visible: boolean;
   is_required: boolean;
   display_order: number;
+  column_group: ColumnGroup;
 }
 
 export const useKpiFieldConfig = () => {
@@ -21,7 +28,7 @@ export const useKpiFieldConfig = () => {
         .order("display_order", { ascending: true });
 
       if (error) throw error;
-      return data as KpiFieldConfig[];
+      return data as unknown as KpiFieldConfig[];
     },
   });
 };
@@ -33,6 +40,25 @@ export const useVisibleKpiFields = () => {
     allFields
       ?.filter((f) => f.category === category && f.is_visible)
       ?.map((f) => ({ name: f.field_name, label: f.field_label, isRequired: f.is_required })) ?? [];
+
+  // Visible KPI fields (pawn/merchandise/marketing categories) grouped by column_group
+  const KPI_CATEGORIES = new Set(["pawn", "merchandise", "marketing"]);
+  const visibleKpiFields =
+    allFields
+      ?.filter((f) => KPI_CATEGORIES.has(f.category) && f.is_visible)
+      ?.sort((a, b) => a.display_order - b.display_order) ?? [];
+
+  const byColumn = (group: ColumnGroup) =>
+    visibleKpiFields
+      .filter((f) => (f.column_group ?? "pawn_performance") === group)
+      .map((f) => ({ name: f.field_name, label: f.field_label, isRequired: f.is_required }));
+
+  // Map field_name -> source category, used by the submit logic to keep
+  // historical exports/dashboards working unchanged.
+  const fieldNameToCategory: Record<string, string> = {};
+  allFields?.forEach((f) => {
+    if (KPI_CATEGORIES.has(f.category)) fieldNameToCategory[f.field_name] = f.category;
+  });
 
   const isGridVisible = (gridFieldName: string) =>
     allFields?.find((f) => f.field_name === gridFieldName)?.is_visible ?? true;
@@ -87,9 +113,16 @@ export const useVisibleKpiFields = () => {
   return {
     isLoading,
     error,
+    // Legacy category-based getters kept for backwards compatibility
     pawnKpis: visibleByCategory("pawn"),
     merchandiseKpis: visibleByCategory("merchandise"),
     marketingKpis: visibleByCategory("marketing"),
+    // New column-group getters
+    pawnPerformanceKpis: byColumn("pawn_performance"),
+    merchandisePerformanceKpis: byColumn("merchandise_performance"),
+    financialSummaryKpis: byColumn("financial_summary"),
+    customerMarketingKpis: byColumn("customer_marketing"),
+    fieldNameToCategory,
     visibleAgedInventoryColumns,
     showAgedInventoryGrid: visibleAgedInventoryColumns.length > 0,
     showPawnBalanceGrid: isGridVisible("pawn_balance_grid"),
