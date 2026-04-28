@@ -145,6 +145,7 @@ export type Database = {
       kpi_field_config: {
         Row: {
           category: string
+          column_group: string
           display_order: number
           field_label: string
           field_name: string
@@ -155,6 +156,7 @@ export type Database = {
         }
         Insert: {
           category: string
+          column_group?: string
           display_order?: number
           field_label: string
           field_name: string
@@ -165,6 +167,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          column_group?: string
           display_order?: number
           field_label?: string
           field_name?: string
