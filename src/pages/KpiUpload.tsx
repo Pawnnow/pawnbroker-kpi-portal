@@ -655,10 +655,36 @@ const KpiUpload = () => {
           {fieldConfigLoading ? (
             <p className="text-muted-foreground text-center py-8">Loading fields...</p>
           ) : (() => {
+            // Unified change handler routes a value to the correct state bucket
+            // (pawn/merchandise/marketing) based on the field's source category.
+            const handleFieldChange = (name: string, value: string) => {
+              const cat = fieldNameToCategory[name];
+              if (cat === "pawn") setPawnValues({ ...pawnValues, [name]: value });
+              else if (cat === "merchandise") setMerchandiseValues({ ...merchandiseValues, [name]: value });
+              else if (cat === "marketing") setMarketingValues({ ...marketingValues, [name]: value });
+            };
+
+            const valueFor = (name: string): string => {
+              const cat = fieldNameToCategory[name];
+              if (cat === "pawn") return pawnValues[name] ?? "";
+              if (cat === "merchandise") return merchandiseValues[name] ?? "";
+              if (cat === "marketing") return marketingValues[name] ?? "";
+              return "";
+            };
+
+            // Build a values object containing only the fields in the column,
+            // so KpiInputColumn (which reads values[field.name]) works unchanged.
+            const valuesForColumn = (fields: { name: string }[]) => {
+              const out: Record<string, string> = {};
+              fields.forEach((f) => { out[f.name] = valueFor(f.name); });
+              return out;
+            };
+
             const allColumns = [
-              { title: "Pawn KPIs", fields: pawnKpis, values: pawnValues, onChange: (name: string, value: string) => setPawnValues({ ...pawnValues, [name]: value }), category: "pawn" as const },
-              { title: "Merchandise KPIs", fields: merchandiseKpis, values: merchandiseValues, onChange: (name: string, value: string) => setMerchandiseValues({ ...merchandiseValues, [name]: value }), category: "merchandise" as const },
-              { title: "Marketing KPIs", fields: marketingKpis, values: marketingValues, onChange: (name: string, value: string) => setMarketingValues({ ...marketingValues, [name]: value }), category: "marketing" as const },
+              { key: "pawn_performance", title: "Pawn Performance", fields: pawnPerformanceKpis },
+              { key: "merchandise_performance", title: "Merchandise Performance", fields: merchandisePerformanceKpis },
+              { key: "financial_summary", title: "Financial Summary", fields: financialSummaryKpis },
+              { key: "customer_marketing", title: "Customer & Marketing", fields: customerMarketingKpis },
             ];
 
             const basicColumns = allColumns
@@ -666,21 +692,16 @@ const KpiUpload = () => {
               .filter((col) => col.fields.length > 0);
             const advancedColumns = allColumns.filter((col) => col.fields.length > 0);
 
-            const gridClassFor = (n: number) =>
-              n >= 3 ? "grid grid-cols-1 lg:grid-cols-3 gap-6"
-                : n === 2 ? "grid grid-cols-1 lg:grid-cols-2 gap-6"
-                : "grid grid-cols-1 gap-6";
-
             const renderColumns = (cols: typeof allColumns) => cols.length > 0 ? (
-              <div className={gridClassFor(cols.length)}>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 {cols.map((col) => (
                   <KpiInputColumn
-                    key={col.category}
+                    key={col.key}
                     title={col.title}
                     fields={col.fields}
-                    values={col.values}
-                    onChange={col.onChange}
-                    category={col.category}
+                    values={valuesForColumn(col.fields)}
+                    onChange={handleFieldChange}
+                    category={col.key as any}
                   />
                 ))}
               </div>
