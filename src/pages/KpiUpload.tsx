@@ -73,6 +73,7 @@ const MERCHANDISE_KPIS = [
   { name: "buy_inventory", label: "Buy Inventory" },
   { name: "layaway_inventory", label: "Layaway Inventory" },
   { name: "scrap_inventory", label: "Scrap Inventory" },
+  { name: "ending_merchandise_inventory", label: "Ending Merchandise Inventory" },
 ];
 
 const MARKETING_KPIS = [
