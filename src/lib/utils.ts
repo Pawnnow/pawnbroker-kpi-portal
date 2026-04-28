@@ -40,6 +40,9 @@ export const CURRENCY_FIELDS = new Set([
   "marketing_website",
   "marketing_consulting",
   "total_marketing_spent",
+  // UI-only proxy field for the basic-view "$ Inventory 365+ Days" input.
+  // Reads/writes the same value as the Aged Inventory grid 365+ Days / Total $ cell.
+  "aged_365_proxy",
 ]);
 
 /** Check if a grid cell field key should be currency-formatted */
