@@ -247,10 +247,16 @@ const AdminDashboard = () => {
         return;
       }
 
-      const csvHeaders = ["user_id", "user_email", "year", "month", "category", "field_name", "field_label", "field_value", "location_id", "store_code", "store_name"];
+      const csvHeaders = ["user_id", "user_email", "year", "month", "category", "field_name", "field_label", "field_value", "location_id", "store_code", "store_name", "currency"];
       const csvRows = kpiData.map(entry => 
         csvHeaders.map(h => {
-          const val = String((entry as any)[h] ?? "");
+          let val: string;
+          if (h === "currency") {
+            // FG002 reports in CAD; everything else defaults to USD
+            val = (entry as any).store_code === "FG002" ? "CAD" : "USD";
+          } else {
+            val = String((entry as any)[h] ?? "");
+          }
           return val.includes(",") || val.includes('"') || val.includes("\n")
             ? `"${val.replace(/"/g, '""')}"` : val;
         }).join(",")
