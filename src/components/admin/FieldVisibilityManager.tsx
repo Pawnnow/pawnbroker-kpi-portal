@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const COLUMN_OPTIONS: { value: string; label: string }[] = [
   { value: "pawn_performance", label: "Pawn Performance" },
-  { value: "merchandise_performance", label: "Merchandise Performance" },
+  { value: "merchandise_performance", label: "Retail and Inventory" },
   { value: "financial_summary", label: "Financial Summary" },
   { value: "customer_marketing", label: "Customer & Marketing" },
 ];
