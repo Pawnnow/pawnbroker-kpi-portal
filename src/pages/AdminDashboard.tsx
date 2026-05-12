@@ -247,13 +247,18 @@ const AdminDashboard = () => {
         return;
       }
 
-      const csvHeaders = ["user_id", "user_email", "year", "month", "category", "field_name", "field_label", "field_value", "location_id", "store_code", "store_name", "currency"];
-      const csvRows = kpiData.map(entry => 
+      const csvHeaders = [
+        "user_id", "user_email", "group", "group_label",
+        "year", "month", "category", "field_name", "field_label", "field_value",
+        "location_id", "store_code", "store_name", "currency",
+      ];
+      // Drop metadata rows — they're the source of the currency column, not output rows
+      const exportRows = kpiData.filter((e: any) => e.category !== "metadata");
+      const csvRows = exportRows.map(entry =>
         csvHeaders.map(h => {
           let val: string;
-          if (h === "currency") {
-            // FG002 reports in CAD; everything else defaults to USD
-            val = (entry as any).store_code === "FG002" ? "CAD" : "USD";
+          if (h === "group_label") {
+            val = getGroupLabel((entry as any).group);
           } else {
             val = String((entry as any)[h] ?? "");
           }
