@@ -1,54 +1,47 @@
-## Diagnosis: this is (mostly) a real bug, not operator error
+## Add `group`/`group_label` to CSV, fix currency column to use the user's selection, and stop emitting `metadata` rows
 
-### What the user is seeing
-On **My Dashboard → My Entries**, previously-uploaded values render as `—` (no entry found) even though the data exists in the database.
+### What's wrong today
+1. **No group info in the CSV.** Adding new groups in the future means the analyst has to maintain a separate user→group mapping or the analysis breaks.
+2. **`currency` column is wrong.** We hardcoded `FG002 → CAD, everything else → USD`, but currency is actually a **user choice** persisted per period+location in `kpi_entries` as a `category="metadata"` row (`field_name="currency"`). The hardcoded rule will misreport any future user who picks CAD on a non-FG002 store, or USD on FG002.
+3. **`metadata` rows leak into the CSV.** They show up as fake "entries" in the analyst's dataset.
 
-### Root cause
-The recent Basic/Advanced split did **not** touch `ClientDashboard.tsx` — but it did expose a pre-existing race condition in how that page fetches entries. The bug:
+### Goal
+Each row in the CSV should carry, alongside the metric: `currency` (the value the user selected for that period+location), `group` (integer), and `group_label` (human label). `metadata` rows themselves should not appear in the CSV — they're the *source* of the currency column, not output rows.
 
-`src/pages/ClientDashboard.tsx` builds its DB query like this:
+## Changes
 
-```ts
-let query = supabase.from("kpi_entries")...
-if (hasLocations && selectedLocationId) {
-  query = query.eq("location_id", selectedLocationId);
-} else if (!hasLocations) {
-  query = query.is("location_id", null);  // ← problem
-}
-```
+### 1. `src/hooks/useAdminKpiData.ts`
+- Extend the `profiles` select to also pull `group`: `.select("id, email, user_name, group")`.
+- Build `groupMap: Map<string, number>` alongside the existing maps.
+- Build a **currency lookup**: walk `data` once, and for every row where `category === "metadata"` and `field_name === "currency"`, store its `field_value` in a `Map` keyed by `${user_id}|${location_id ?? ""}|${year}|${month}`. Default value if absent: `"USD"`.
+- Extend `AdminKpiEntry` with `group?: number | null` and `currency?: string`.
+- In `enrichedData.map`, attach `group: groupMap.get(entry.user_id) ?? 0` and `currency: currencyMap.get(key) ?? "USD"` to every entry. Keep metadata rows in the returned array — the CSV will filter them, but other consumers (admin grid views, etc.) may still rely on them being there.
 
-…and the effect that calls it has dependencies `[year, month, selectedLocationId]` — **`hasLocations` is missing**.
+### 2. `src/pages/AdminDashboard.tsx` — `handleDownloadBackup`
+- Add `getGroupLabel` import from `@/lib/groupLabel`.
+- New `csvHeaders` (insertion points kept tidy):
+  ```
+  user_id, user_email, group, group_label, year, month, category,
+  field_name, field_label, field_value, location_id, store_code, store_name, currency
+  ```
+- Filter out metadata rows before building rows: `kpiData.filter(e => e.category !== "metadata")`.
+- Row mapper:
+  - `group_label` → `getGroupLabel(entry.group)`
+  - `currency` → `entry.currency` (already attached by the hook; no more FG002 hardcode)
+  - everything else → `String(entry[h] ?? "")` as today
 
-`hasLocations` comes from `useUserLocations()` (React Query, async). On first render its data is `undefined`, so `hasLocations === false`. The effect fires immediately and runs the query with `location_id IS NULL`, which returns **zero rows** for any user whose entries all have a `location_id` (i.e., every multi-store user — confirmed in DB: 2 of the active users have multiple locations and 2,300 of 2,480 rows have a non-null `location_id`).
-
-When `useUserLocations` resolves a moment later, `hasLocations` flips to `true`, but **nothing re-triggers the effect** because `hasLocations` isn't in the deps and `selectedLocationId` is still `""`. The user is stuck on an empty grid until they manually open the Store dropdown and pick one — at which point everything appears.
-
-### Why this looked like a regression after Basic/Advanced
-The split didn't change ClientDashboard's logic, but it did add work to `useKpiFieldConfig` and the upload page that re-renders things slightly differently. The race was always there; it's just biting more consistently now. (Also: `KpiUpload`'s submit was reworded to only delete `field_name`s it's about to insert, so re-submits from the Basic tab are safe and don't wipe Advanced fields — that part is fine.)
-
-## Plan
-
-### 1. `src/pages/ClientDashboard.tsx` — fix the race
-Two small, targeted changes:
-
-- **Wait for locations to load before fetching.** Pull `isLoading: locationsLoading` out of `useUserLocations()` and short-circuit `fetchEntries` while it's still loading. Add `locationsLoading` and `hasLocations` to the effect's dependency array so the fetch re-runs once locations resolve.
-- **Auto-select the first store.** Once `locations` arrives, if `hasLocations && !selectedLocationId`, default `selectedLocationId` to `locations[0].id`. This matches what KpiUpload effectively expects and prevents the "no store picked → mixed data" foot-gun.
-
-After this, multi-store users land on My Entries with their first store preselected and entries loaded; single-location users are unaffected.
-
-### 2. (Optional, recommended) tighten the query
-While we're in there, change the `else if (!hasLocations)` branch so that when the user *does* have locations but somehow still has no `selectedLocationId`, we don't fall through to the `location_id IS NULL` filter at all — just skip running the query. Belt-and-suspenders against the same class of bug.
-
-### 3. No DB / RLS / schema changes
-Data is intact in `kpi_entries`. RLS already allows users to read their own rows. This is purely a frontend timing fix.
+### 3. No DB migration, no edge-function changes
+- `kpi-export` already filters metadata out, so it's untouched.
+- `admin-restore-data` will harmlessly ignore the new `group`/`group_label`/`currency` CSV columns on import (group lives on the user, currency lives on the metadata row that gets re-created on next submit). No restore changes needed.
+- We are **not** removing the metadata writer in `KpiUpload.tsx`. It remains the source of truth for the per-period currency selection so the user's USD/CAD choice persists when reopening a period. We're just stopping it from leaking into the CSV.
 
 ### Out of scope
-- No changes to KpiUpload, the Basic/Advanced split, the column-group migration, or the inline-edit save logic (`handleSave` works correctly when an entry is found — the bug is upstream, in fetching).
-- No data migration needed.
+- Excel/Power Query exports (already correct — they filter metadata and emit currency as a column).
+- Removing the currency dropdown on the upload page.
+- Any UI for editing `group` (already exists in the admin user editor).
 
 ### Verification
-1. Log in as a multi-store user → land on My Entries → values should render immediately for the first store, with the dropdown showing it preselected.
-2. Switch store → values update.
-3. Switch month/year → fetch re-runs.
-4. Inline pencil-edit on any populated field → saves and persists after refresh.
-5. Single-location user → unchanged behavior.
+1. Download a fresh CSV → `metadata` rows are gone; every remaining row has populated `currency`, `group`, `group_label` columns.
+2. A row from an FG002 user who selected CAD shows `CAD`. A row from a non-FG002 user who selected CAD also shows `CAD` (proves we're using their selection, not the store rule).
+3. A Founders user shows `1` / `Founders`; a Demo user shows `0` / `Demo`.
+4. Re-import the CSV via the existing restore flow — succeeds, ignores the new columns, no errors.
