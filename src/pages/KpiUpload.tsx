@@ -63,7 +63,7 @@ const MERCHANDISE_KPIS = [
   { name: "num_sales_transactions_30d", label: "# Sales Transactions" },
   { name: "retail_sales", label: "Retail Sales" },
   { name: "gross_sales", label: "Gross Sales" },
-  { name: "cogs", label: "COGS" },
+  { name: "cogs", label: "COGS for Retail" },
   { name: "gross_profits", label: "Gross Profits" },
   { name: "scrap_sales", label: "Scrap Sales" },
   { name: "cogs_scrap", label: "COGS for Scrap" },
@@ -683,13 +683,13 @@ const KpiUpload = () => {
 
             const allColumns = [
               { key: "pawn_performance", title: "Pawn Performance", fields: pawnPerformanceKpis },
-              { key: "merchandise_performance", title: "Merchandise Performance", fields: merchandisePerformanceKpis },
+              { key: "merchandise_performance", title: "Retail and Inventory", fields: merchandisePerformanceKpis },
               { key: "financial_summary", title: "Financial Summary", fields: financialSummaryKpis },
               { key: "customer_marketing", title: "Customer & Marketing", fields: customerMarketingKpis },
             ];
 
             // Basic view only: inject the "$ Inventory 365+ Days" proxy under
-            // Merchandise Performance when that aged row is required, and hide
+            // Retail and Inventory when that aged row is required, and hide
             // it from the Aged Inventory grid below to avoid duplication.
             const aged365Required = requiredAgedRows.includes("365+ Days");
             const basicAgedRows = aged365Required
