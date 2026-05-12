@@ -94,20 +94,8 @@ export const useAdminKpiData = () => {
         }
       }
 
-      // Build a per-period+location currency lookup from the metadata rows
-      // (KpiUpload writes one category="metadata" row with field_name="currency"
-      // per submission). Default to USD when absent.
-      const currencyKey = (uid: string, locId: string | null | undefined, y: number, m: number) =>
-        `${uid}|${locId ?? ""}|${y}|${m}`;
-      const currencyMap = new Map<string, string>();
-      data?.forEach((row: any) => {
-        if (row.category === "metadata" && row.field_name === "currency" && row.field_value) {
-          currencyMap.set(currencyKey(row.user_id, row.location_id, row.year, row.month), row.field_value);
-        }
-      });
-
-      // Attach email, location, group, and currency info to each entry
-      const enrichedData = data?.map(entry => {
+      // Currency now lives on each kpi_entries row (default 'USD')
+      const enrichedData = data?.map((entry: any) => {
         const loc = entry.location_id ? locationMap.get(entry.location_id) : null;
         return {
           ...entry,
@@ -115,7 +103,7 @@ export const useAdminKpiData = () => {
           store_code: loc?.store_code || userNameMap.get(entry.user_id) || null,
           store_name: loc?.store_name || null,
           group: groupMap.get(entry.user_id) ?? 0,
-          currency: currencyMap.get(currencyKey(entry.user_id, entry.location_id, entry.year, entry.month)) ?? "USD",
+          currency: entry.currency ?? "USD",
         };
       }) as AdminKpiEntry[];
 
