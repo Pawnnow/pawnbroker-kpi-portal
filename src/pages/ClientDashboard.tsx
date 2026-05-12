@@ -59,8 +59,15 @@ const ClientDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
-  const { data: locations } = useUserLocations();
-  const hasLocations = locations && locations.length > 0;
+  const { data: locations, isLoading: locationsLoading } = useUserLocations();
+  const hasLocations = !!(locations && locations.length > 0);
+
+  // Auto-select first store once locations load (prevents empty/mixed-data state)
+  useEffect(() => {
+    if (hasLocations && !selectedLocationId) {
+      setSelectedLocationId(locations![0].id);
+    }
+  }, [hasLocations, locations, selectedLocationId]);
   const {
     pawnKpis,
     merchandiseKpis,
