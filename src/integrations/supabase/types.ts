@@ -89,6 +89,7 @@ export type Database = {
         Row: {
           category: string
           created_at: string | null
+          currency: string
           field_label: string
           field_name: string
           field_value: string | null
@@ -102,6 +103,7 @@ export type Database = {
         Insert: {
           category: string
           created_at?: string | null
+          currency?: string
           field_label: string
           field_name: string
           field_value?: string | null
@@ -115,6 +117,7 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string | null
+          currency?: string
           field_label?: string
           field_name?: string
           field_value?: string | null

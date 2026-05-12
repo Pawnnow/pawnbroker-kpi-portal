@@ -307,23 +307,10 @@ serve(async (req) => {
       return userProfiles[row.user_id]?.user_name || null;
     };
 
-    // Build currency lookup: user_id-location_id-year-month → currency value
-    const currencyMap = new Map<string, string>();
-    kpiData?.forEach(row => {
-      if (row.field_name === 'currency' && row.category === 'metadata') {
-        const locKey = row.location_id || 'none';
-        const key = `${row.user_id}-${locKey}-${row.year}-${row.month}`;
-        currencyMap.set(key, row.field_value || 'USD');
-      }
-    });
+    // Currency now lives on each kpi_entries row (default 'USD')
+    const getCurrency = (row: any): string => row.currency || 'USD';
 
-    const getCurrency = (row: any): string => {
-      const locKey = row.location_id || 'none';
-      const key = `${row.user_id}-${locKey}-${row.year}-${row.month}`;
-      return currencyMap.get(key) || 'USD';
-    };
-
-    // Filter out metadata rows from the output (currency is now a column)
+    // Filter out any legacy metadata rows (currency is now a column)
     const nonMetadataData = kpiData?.filter(row => row.category !== 'metadata') || [];
 
     // Format response based on requested format

@@ -197,14 +197,13 @@ const KpiUpload = () => {
         setLastSubmittedAt(null);
       }
 
-      // Load existing currency for this period
+      // Load existing currency for this period (any entry will do)
       let currQuery = supabase
         .from("kpi_entries")
-        .select("field_value")
+        .select("currency")
         .eq("user_id", userId)
         .eq("year", year)
         .eq("month", month)
-        .eq("field_name", "currency")
         .limit(1);
 
       if (hasLocations && selectedLocationId) {
@@ -214,8 +213,8 @@ const KpiUpload = () => {
       }
 
       const { data: currData } = await currQuery;
-      if (currData && currData.length > 0 && currData[0].field_value) {
-        setCurrency(currData[0].field_value);
+      if (currData && currData.length > 0 && (currData[0] as any).currency) {
+        setCurrency((currData[0] as any).currency);
       } else {
         setCurrency("USD");
       }
@@ -473,17 +472,10 @@ const KpiUpload = () => {
         }
       });
 
-      // Add currency metadata entry
-      entries.push({
-        user_id: user.id,
-        year,
-        month,
-        field_name: "currency",
-        field_label: "Currency",
-        field_value: currency,
-        category: "metadata",
-        ...(locationId && { location_id: locationId }),
-      });
+      // Attach currency to every entry (replaces old metadata row)
+      for (const e of entries) {
+        (e as any).currency = currency;
+      }
 
       if (entries.length === 0) {
         toast({
