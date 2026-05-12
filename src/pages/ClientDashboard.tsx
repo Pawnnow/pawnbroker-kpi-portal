@@ -59,8 +59,15 @@ const ClientDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
-  const { data: locations } = useUserLocations();
-  const hasLocations = locations && locations.length > 0;
+  const { data: locations, isLoading: locationsLoading } = useUserLocations();
+  const hasLocations = !!(locations && locations.length > 0);
+
+  // Auto-select first store once locations load (prevents empty/mixed-data state)
+  useEffect(() => {
+    if (hasLocations && !selectedLocationId) {
+      setSelectedLocationId(locations![0].id);
+    }
+  }, [hasLocations, locations, selectedLocationId]);
   const {
     pawnKpis,
     merchandiseKpis,
@@ -86,9 +93,14 @@ const ClientDashboard = () => {
         .eq("year", year)
         .eq("month", month);
 
-      if (hasLocations && selectedLocationId) {
+      if (hasLocations) {
+        // Only query once a store is selected; otherwise we'd return mixed/empty data
+        if (!selectedLocationId) {
+          setEntries([]);
+          return;
+        }
         query = query.eq("location_id", selectedLocationId);
-      } else if (!hasLocations) {
+      } else {
         query = query.is("location_id", null);
       }
 
@@ -104,8 +116,10 @@ const ClientDashboard = () => {
   };
 
   useEffect(() => {
+    // Wait for locations to resolve so we don't run with a stale hasLocations=false
+    if (locationsLoading) return;
     fetchEntries();
-  }, [year, month, selectedLocationId]);
+  }, [year, month, selectedLocationId, hasLocations, locationsLoading]);
 
   const handleEdit = (entry: KpiEntry) => {
     setEditingId(entry.id);
