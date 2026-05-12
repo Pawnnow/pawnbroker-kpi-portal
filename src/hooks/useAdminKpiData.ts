@@ -8,6 +8,8 @@ interface AdminKpiEntry extends KpiEntry {
   store_code?: string | null;
   store_name?: string | null;
   location_id?: string | null;
+  group?: number | null;
+  currency?: string;
 }
 
 const BATCH_SIZE = 1000;
