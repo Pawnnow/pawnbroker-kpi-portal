@@ -9,7 +9,7 @@ export const KPI_INFO_IMAGES: Record<string, string> = {
   "dollar_pawns_defaulted": "/kpi-info/dollardefault.jpg",
   "psc_collected": "/kpi-info/psccollected.png",
   "gross_sales": "/kpi-info/grosssales.jpg",
-  "cogs": "/kpi-info/cogs.jpg",
+  "retail_cogs": "/kpi-info/cogs.jpg",
   "gross_profits": "/kpi-info/grossprofit.jpg",
   "buy_inventory": "/kpi-info/buyinventory.jpg",
   "merch_inventory": "/kpi-info/merchinventory.jpg",
@@ -20,5 +20,5 @@ export const KPI_INFO_IMAGES: Record<string, string> = {
 export const KPI_INFO_TEXT: Record<string, string> = {
   "new_customers_30d": "See Page 10 of the KPI Guide",
   "aged_inventory_grid": "See Page 12 of the KPI Guide",
-  "ending_merchandise_inventory": "This is the sum of Sellable Inventory, Open Buy Balance, Layaway Cost as of Printing, and Scrap Inventory from the Pawnmate Dashboard Report",
+  "ending_inventory": "This is the sum of Sellable Inventory, Open Buy Balance, Layaway Cost as of Printing, and Scrap Inventory from the Pawnmate Dashboard Report",
 };
