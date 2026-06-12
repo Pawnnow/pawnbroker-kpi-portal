@@ -63,7 +63,7 @@ const MERCHANDISE_KPIS = [
   { name: "num_sales_transactions_30d", label: "# Sales Transactions" },
   { name: "retail_sales", label: "Retail Sales" },
   { name: "gross_sales", label: "Gross Sales" },
-  { name: "cogs", label: "COGS for Retail" },
+  { name: "retail_cogs", label: "COGS for Retail" },
   { name: "gross_profits", label: "Gross Profits" },
   { name: "scrap_sales", label: "Scrap Sales" },
   { name: "cogs_scrap", label: "COGS for Scrap" },
@@ -73,7 +73,7 @@ const MERCHANDISE_KPIS = [
   { name: "buy_inventory", label: "Buy Inventory" },
   { name: "layaway_inventory", label: "Layaway Inventory" },
   { name: "scrap_inventory", label: "Scrap Inventory" },
-  { name: "ending_merchandise_inventory", label: "Ending Merchandise Inventory" },
+  { name: "ending_inventory", label: "Ending Merchandise Inventory" },
 ];
 
 const MARKETING_KPIS = [

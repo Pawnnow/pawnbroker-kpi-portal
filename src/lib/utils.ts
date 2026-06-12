@@ -21,7 +21,7 @@ export const CURRENCY_FIELDS = new Set([
   "dollar_redeemed_layaways",
   "retail_sales",
   "gross_sales",
-  "cogs",
+  "retail_cogs",
   "gross_profits",
   "scrap_sales",
   "cogs_scrap",
