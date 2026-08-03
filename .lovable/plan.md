@@ -1,41 +1,27 @@
-I will package all files tied to logins and authentication into a single downloadable zip archive placed in `/mnt/documents`.
+# Fix: previously entered data not visible in My Entries
 
-Files to include:
+## What's happening
 
-**Frontend auth flow**
-- `src/App.tsx` — route definitions for `/auth`, `/reset-password`, `/change-password`, and protected routes
-- `src/pages/Auth.tsx` — login page (email / member number + password)
-- `src/pages/ResetPassword.tsx` — password reset form
-- `src/pages/ChangePassword.tsx` — forced password change screen
-- `src/components/ProtectedRoute.tsx` — session check, `must_change_password` redirect, frozen-account gate
-- `src/components/AdminRoute.tsx` — admin-only route wrapper
-- `src/components/AccountFrozenScreen.tsx` — frozen-account UI
-- `src/hooks/useUserRole.ts` — reads `user_roles` to determine admin status
-- `src/hooks/useUserLocations.ts` — fetches locations for the authenticated user
-- `src/integrations/supabase/client.ts` — Supabase client with auth persistence settings
+Martin's data is in the database — 22 fields for March 2026 — but every one of those rows has no store attached to it (blank store reference). He now has one store on his account (FG002), so the My Entries tab filters by that store and finds nothing.
 
-**Admin user-management UI**
-- `src/components/admin/CreateUserForm.tsx`
-- `src/components/admin/EditUserDialog.tsx`
-- `src/components/admin/UserList.tsx`
-- `src/components/admin/UserListExpanded.tsx`
-- `src/components/admin/EmailTemplateEditor.tsx`
+This isn't operator error, and it isn't only Martin. Three accounts are affected:
 
-**Backend edge functions**
-- `supabase/functions/login-with-identifier/index.ts` — custom login by email or member number
-- `supabase/functions/admin-create-user/index.ts` — admin user creation + welcome email
-- `supabase/functions/admin-update-user/index.ts` — admin user updates + role changes
-- `supabase/functions/admin-delete-user/index.ts` — cascading user deletion
-- `supabase/functions/send-email/index.ts` — transactional email helper
+| Account | Name | Orphaned entries |
+| --- | --- | --- |
+| FG009 | Michael Hill | 176 |
+| FG010 | Jeremy Powell | 160 |
+| FG002 | Martin Strasser | 22 |
 
-**Database schema / auth plumbing**
-- `supabase/migrations/20251205222554_remix_migration_from_pg_dump.sql` — `profiles` table and `handle_new_user()` trigger
-- `supabase/migrations/20251219202542_3a77ac0d-8b57-489b-86d3-ead33916dc3c.sql` — `app_role` enum, `user_roles`, `has_role()`, `api_keys`
-- `supabase/migrations/20251219203841_a9b483d9-7145-4fa4-8ee1-a12f9b797b85.sql` — auth trigger wiring
-- `supabase/migrations/20260224213859_02f4581d-326a-4404-b988-a37641f016e6.sql` — `locations` table and RLS
-- `supabase/config.toml` — Supabase project configuration
+All three submitted their data before a store record existed on their account. When default store records were later created for accounts missing one, the older entries were left unlinked, so the dashboard's store filter hides them.
 
-**Deliverable**
-- A zip file at `/mnt/documents/auth-system-export.zip` containing the files above, preserving their directory structure, plus a `README-auth-files.md` index describing each file's purpose.
+## The fix
 
-No application code changes are required.
+1. **Backfill the existing data.** For any account that has exactly one store, attach all of its unlinked entries to that store. This makes the three accounts above see their history again immediately. Accounts with multiple stores are not touched (there'd be no safe way to guess which store an entry belongs to) — none currently have orphaned entries.
+
+2. **Prevent a repeat.** In the My Entries tab, when an account has exactly one store, also include entries that have no store attached, so nothing can ever silently disappear again for single-store users.
+
+## Technical details
+
+- Migration: `UPDATE public.kpi_entries e SET location_id = l.id FROM public.locations l WHERE e.location_id IS NULL AND l.user_id = e.user_id AND (SELECT count(*) FROM public.locations l2 WHERE l2.user_id = e.user_id) = 1;`
+- `src/pages/ClientDashboard.tsx` `fetchEntries()`: when `locations.length === 1`, replace `.eq("location_id", selectedLocationId)` with `.or("location_id.eq.<id>,location_id.is.null")`. Multi-store behavior unchanged.
+- Note: with the unique index on `(user_id, location_id, year, month, field_name)` using `NULLS NOT DISTINCT`, the backfill cannot create duplicates for these accounts since none of them have store-linked rows for the same periods.
