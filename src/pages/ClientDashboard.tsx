@@ -464,6 +464,10 @@ const ClientDashboard = () => {
           </TabsList>
 
           <TabsContent value="entries" className="space-y-6">
+            <p className="text-sm text-muted-foreground">
+              Modify your previously entered data here. This is not for initial data submissions. To upload your data, please click "Upload" in the top right corner.
+            </p>
+
             {/* Filters */}
             <div className="bg-card rounded-lg border border-border p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
