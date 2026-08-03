@@ -99,10 +99,16 @@ const ClientDashboard = () => {
           setEntries([]);
           return;
         }
-        query = query.eq("location_id", selectedLocationId);
+        if (locations!.length === 1) {
+          // Single-store accounts: also include legacy entries saved before the store existed
+          query = query.or(`location_id.eq.${selectedLocationId},location_id.is.null`);
+        } else {
+          query = query.eq("location_id", selectedLocationId);
+        }
       } else {
         query = query.is("location_id", null);
       }
+
 
       const { data, error } = await query.order("field_name");
       if (error) throw error;
