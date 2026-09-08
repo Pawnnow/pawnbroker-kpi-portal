@@ -37,6 +37,7 @@
         "@supabase/auth-ui-shared": "^0.1.8",
         "@supabase/supabase-js": "^2.81.1",
         "@tanstack/react-query": "^5.83.0",
+        "@zip.js/zip.js": "^2.13.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
@@ -450,6 +451,8 @@
     "@typescript-eslint/visitor-keys": ["@typescript-eslint/visitor-keys@8.38.0", "", { "dependencies": { "@typescript-eslint/types": "8.38.0", "eslint-visitor-keys": "^4.2.1" } }, "sha512-pWrTcoFNWuwHlA9CvlfSsGWs14JxfN1TH25zM5L7o0pRLhsoZkDnTsXfQRJBEWJoV5DL0jf+Z+sxiud+K0mq1g=="],
 
     "@vitejs/plugin-react-swc": ["@vitejs/plugin-react-swc@3.11.0", "", { "dependencies": { "@rolldown/pluginutils": "1.0.0-beta.27", "@swc/core": "^1.12.11" }, "peerDependencies": { "vite": "^4 || ^5 || ^6 || ^7" } }, "sha512-YTJCGFdNMHCMfjODYtxRNVAYmTWQ1Lb8PulP/2/f/oEEtglw8oKxKIZmmRkyXrVrHfsKOaVkAc3NT9/dMutO5w=="],
+
+    "@zip.js/zip.js": ["@zip.js/zip.js@2.13.1", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@zip.js/zip.js/-/zip.js-2.13.1.tgz", {}, "sha512-D+iRyi2/uBCXPDQBhz2Z+Emcj2Cd8K/FG0y0l8WFeZJAZiP46m7cCajsGW3ktSq1HWov3nogZxyQ3FBisxOQSQ=="],
 
     "acorn": ["acorn@8.15.0", "", { "bin": "bin/acorn" }, "sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg=="],
 

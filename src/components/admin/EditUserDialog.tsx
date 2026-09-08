@@ -52,6 +52,7 @@ const EditUserDialog = ({
     member_number: "",
     email: "",
     group: "0",
+    software_platform: "other",
     is_admin: false,
   });
   const { toast } = useToast();
@@ -65,6 +66,7 @@ const EditUserDialog = ({
         member_number: (user as any).member_number || "",
         email: user.email || "",
         group: String(user.group ?? 0),
+        software_platform: (user as any).software_platform || "other",
         is_admin: user.isAdmin,
       });
     }
@@ -89,6 +91,7 @@ const EditUserDialog = ({
           member_number: formData.member_number || null,
           email: formData.email || null,
           group: parseInt(formData.group, 10),
+          software_platform: formData.software_platform,
           is_admin: formData.is_admin,
         },
       });
@@ -203,6 +206,27 @@ const EditUserDialog = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="software_platform">Software</Label>
+              <Select
+                value={formData.software_platform}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, software_platform: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select software" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="pawnmate">PawnMate</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                PawnMate users get the backup-file upload page instead of the standard portal.
+              </p>
             </div>
 
             <div className="flex items-center justify-between">

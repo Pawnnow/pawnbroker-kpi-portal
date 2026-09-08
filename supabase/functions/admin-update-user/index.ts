@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse the request body
-    const { user_id, email, user_name, full_name, member_number, group, is_admin } = await req.json();
+    const { user_id, email, user_name, full_name, member_number, group, software_platform, is_admin } = await req.json();
 
     // Validate required fields
     if (!user_id) {
@@ -156,6 +156,15 @@ Deno.serve(async (req) => {
     if (member_number !== undefined) profileUpdate.member_number = member_number;
     if (group !== undefined) profileUpdate.group = typeof group === 'number' ? group : parseInt(group, 10);
     if (email !== undefined) profileUpdate.email = email;
+    if (software_platform !== undefined) {
+      if (software_platform !== "pawnmate" && software_platform !== "other") {
+        return new Response(
+          JSON.stringify({ error: "software_platform must be 'pawnmate' or 'other'" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      profileUpdate.software_platform = software_platform;
+    }
 
     // Update profile if there are changes
     if (Object.keys(profileUpdate).length > 0) {

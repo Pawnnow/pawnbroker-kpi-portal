@@ -5,7 +5,9 @@ export type ColumnGroup =
   | "pawn_performance"
   | "merchandise_performance"
   | "financial_summary"
-  | "customer_marketing";
+  | "customer_marketing"
+  | "income"
+  | "monthly_expenses";
 
 interface KpiFieldConfig {
   id: string;

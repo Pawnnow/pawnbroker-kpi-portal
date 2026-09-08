@@ -226,6 +226,7 @@ export type Database = {
           is_frozen: boolean | null
           member_number: string | null
           must_change_password: boolean | null
+          software_platform: string
           updated_at: string | null
           user_name: string | null
         }
@@ -238,6 +239,7 @@ export type Database = {
           is_frozen?: boolean | null
           member_number?: string | null
           must_change_password?: boolean | null
+          software_platform?: string
           updated_at?: string | null
           user_name?: string | null
         }
@@ -250,6 +252,7 @@ export type Database = {
           is_frozen?: boolean | null
           member_number?: string | null
           must_change_password?: boolean | null
+          software_platform?: string
           updated_at?: string | null
           user_name?: string | null
         }
@@ -292,6 +295,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_field_labels: {
+        Row: {
+          created_at: string
+          field_name: string
+          id: string
+          label: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          field_name: string
+          id?: string
+          label: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          field_name?: string
+          id?: string
+          label?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

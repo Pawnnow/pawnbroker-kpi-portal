@@ -33,6 +33,8 @@ import { useUserLocations } from "@/hooks/useUserLocations";
 import { useNavigate } from "react-router-dom";
 import { LogOut, BarChart3, Shield, Store, Save, FileText, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import FilesDropdown from "@/components/FilesDropdown";
+import PawnmateUpload from "@/pages/PawnmateUpload";
+import { useSoftwarePlatform } from "@/hooks/useSoftwarePlatform";
 
 const PAWN_KPIS = [
   { name: "ending_pawn_balance", label: "Ending Pawn Balance" },
@@ -142,6 +144,7 @@ const KpiUpload = () => {
   const navigate = useNavigate();
   const { data: roleData } = useUserRole();
   const { data: locations } = useUserLocations();
+  const { data: platformInfo, isLoading: platformLoading } = useSoftwarePlatform();
   const hasLocations = locations && locations.length > 0;
   const {
     pawnKpis,
@@ -546,6 +549,19 @@ const KpiUpload = () => {
       setIsSubmitting(false);
     }
   };
+
+  // PawnMate accounts get the backup-extractor experience instead of the
+  // classic Basic/Advanced portal.
+  if (platformLoading) {
+    return (
+      <div className="min-h-screen bg-secondary/30 flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+  if (platformInfo?.platform === "pawnmate") {
+    return <PawnmateUpload />;
+  }
 
   return (
     <div className="min-h-screen bg-secondary/30">
