@@ -575,6 +575,10 @@ const KpiUpload = () => {
                 Guide for Pawnmate Users
               </a>
             </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/budget-planner")}>
+              <Calculator className="w-4 h-4 mr-2" />
+              Budget Planner
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               <BarChart3 className="w-4 h-4 mr-2" />
               User Dashboard
