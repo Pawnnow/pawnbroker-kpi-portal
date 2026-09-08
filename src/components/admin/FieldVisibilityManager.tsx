@@ -28,9 +28,11 @@ const GRID_SECTION_LABELS: Record<string, string> = {
   aged_inventory: "Aged Inventory Columns",
   pawn_balance: "Pawn Balance Breakdown Grid",
   aged_inventory_row: "Aged Inventory Rows (Mandatory)",
+  income: "Income (PawnMate — Other Required tab)",
+  expenses: "Monthly Expenses (PawnMate — Other Required tab)",
 };
 
-const GRID_SECTION_ORDER = ["aged_inventory", "pawn_balance", "aged_inventory_row"];
+const GRID_SECTION_ORDER = ["aged_inventory", "pawn_balance", "aged_inventory_row", "income", "expenses"];
 
 const FieldVisibilityManager = () => {
   const { data: fields, isLoading } = useKpiFieldConfig();

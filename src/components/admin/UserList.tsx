@@ -236,9 +236,14 @@ const UserList = () => {
                         </code>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {getGroupLabel(user.group)}
-                        </Badge>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge variant="outline">
+                            {getGroupLabel(user.group)}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {(user as any).software_platform === "pawnmate" ? "PawnMate" : "Other"}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

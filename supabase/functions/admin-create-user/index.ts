@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
     await verifyAdmin(req, supabaseUrl, supabaseAnonKey);
 
     const body = await req.json();
-    const { email, password, user_name, full_name, member_number } = body;
+    const { email, password, user_name, full_name, member_number, software_platform } = body;
     const groupValue = validateInput(body);
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
@@ -185,6 +185,7 @@ Deno.serve(async (req) => {
         member_number: member_number || null,
         must_change_password: true,
         group: groupValue,
+        software_platform: software_platform === "pawnmate" ? "pawnmate" : "other",
       })
       .eq("id", authData.user.id);
 

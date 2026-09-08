@@ -23,6 +23,7 @@ const CreateUserForm = () => {
   const [memberNumber, setMemberNumber] = useState("");
   const [password, setPassword] = useState("");
   const [group, setGroup] = useState<number>(0);
+  const [softwarePlatform, setSoftwarePlatform] = useState<string>("other");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [createdUser, setCreatedUser] = useState<{ email: string; password: string; user_name: string; member_number: string; group: number; email_sent?: boolean } | null>(null);
@@ -74,6 +75,7 @@ const CreateUserForm = () => {
             full_name: fullName,
             member_number: memberNumber,
             group,
+            software_platform: softwarePlatform,
           }),
         }
       );
@@ -97,6 +99,7 @@ const CreateUserForm = () => {
       setMemberNumber("");
       setPassword("");
       setGroup(0);
+      setSoftwarePlatform("other");
     } catch (error: any) {
       toast({
         title: "Error creating user",
@@ -185,6 +188,22 @@ const CreateUserForm = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="software_platform">Software *</Label>
+              <Select value={softwarePlatform} onValueChange={setSoftwarePlatform}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select software" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="pawnmate">PawnMate</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                PawnMate users get the backup-file upload page instead of the standard portal.
+              </p>
             </div>
 
             <div className="space-y-2">
