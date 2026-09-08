@@ -19,8 +19,10 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useUserLocations } from "@/hooks/useUserLocations";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
 import { useNavigate } from "react-router-dom";
-import { LogOut, ArrowLeft, Shield, Pencil, Check, X, Store, BarChart3, ClipboardList } from "lucide-react";
+import { LogOut, ArrowLeft, Shield, Pencil, Check, X, Store, BarChart3, ClipboardList, Calculator } from "lucide-react";
 import FilesDropdown from "@/components/FilesDropdown";
+import BudgetPlannerPanel from "@/components/budget/BudgetPlannerPanel";
+
 import { CURRENCY_FIELDS, isCurrencyField, isGridCurrencyField, formatAsCurrency, normalizeCurrencyValue } from "@/lib/utils";
 
 interface KpiEntry {
