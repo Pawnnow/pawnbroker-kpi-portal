@@ -44,6 +44,216 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_actuals: {
+        Row: {
+          category_key: string
+          created_at: string
+          id: string
+          location_id: string | null
+          month: number
+          updated_at: string
+          user_id: string
+          value: number | null
+          year: number
+        }
+        Insert: {
+          category_key: string
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          month: number
+          updated_at?: string
+          user_id: string
+          value?: number | null
+          year: number
+        }
+        Update: {
+          category_key?: string
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          month?: number
+          updated_at?: string
+          user_id?: string
+          value?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_actuals_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_actuals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_categories: {
+        Row: {
+          category_key: string
+          created_at: string
+          id: string
+          label: string
+          location_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_key: string
+          created_at?: string
+          id?: string
+          label: string
+          location_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_key?: string
+          created_at?: string
+          id?: string
+          label?: string
+          location_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_categories_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_categories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_cells: {
+        Row: {
+          category_key: string
+          created_at: string
+          id: string
+          location_id: string | null
+          month: number
+          updated_at: string
+          user_id: string
+          value: number | null
+          year: number
+        }
+        Insert: {
+          category_key: string
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          month: number
+          updated_at?: string
+          user_id: string
+          value?: number | null
+          year: number
+        }
+        Update: {
+          category_key?: string
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          month?: number
+          updated_at?: string
+          user_id?: string
+          value?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_cells_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_cells_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_year_settings: {
+        Row: {
+          beginning_inventory: number
+          created_at: string
+          fica_rate: number
+          futa_suta_rate: number
+          id: string
+          location_id: string | null
+          starting_cash: number
+          tax_rate_city: number
+          tax_rate_county: number
+          tax_rate_state: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          beginning_inventory?: number
+          created_at?: string
+          fica_rate?: number
+          futa_suta_rate?: number
+          id?: string
+          location_id?: string | null
+          starting_cash?: number
+          tax_rate_city?: number
+          tax_rate_county?: number
+          tax_rate_state?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          beginning_inventory?: number
+          created_at?: string
+          fica_rate?: number
+          futa_suta_rate?: number
+          id?: string
+          location_id?: string | null
+          starting_cash?: number
+          tax_rate_city?: number
+          tax_rate_county?: number
+          tax_rate_state?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_year_settings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_year_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           attachment_filename: string | null

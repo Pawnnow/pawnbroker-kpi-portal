@@ -18,7 +18,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useUserLocations } from "@/hooks/useUserLocations";
 import { useSoftwarePlatform } from "@/hooks/useSoftwarePlatform";
 import { useNavigate } from "react-router-dom";
-import { LogOut, BarChart3, Shield, Store } from "lucide-react";
+import { LogOut, BarChart3, Shield, Store, Calculator } from "lucide-react";
 
 const PawnmateUpload = () => {
   const navigate = useNavigate();
@@ -59,6 +59,10 @@ const PawnmateUpload = () => {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">KPI Upload Portal</h1>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/budget-planner")}>
+              <Calculator className="w-4 h-4 mr-2" />
+              Budget Planner
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               <BarChart3 className="w-4 h-4 mr-2" />
               User Dashboard

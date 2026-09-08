@@ -31,7 +31,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
 import { useUserLocations } from "@/hooks/useUserLocations";
 import { useNavigate } from "react-router-dom";
-import { LogOut, BarChart3, Shield, Store, Save, FileText, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { LogOut, BarChart3, Shield, Store, Save, FileText, CheckCircle2, XCircle, AlertTriangle, Calculator } from "lucide-react";
 import FilesDropdown from "@/components/FilesDropdown";
 import PawnmateUpload from "@/pages/PawnmateUpload";
 import { useSoftwarePlatform } from "@/hooks/useSoftwarePlatform";
@@ -574,6 +574,10 @@ const KpiUpload = () => {
                 <FileText className="w-4 h-4 mr-2" />
                 Guide for Pawnmate Users
               </a>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/budget-planner")}>
+              <Calculator className="w-4 h-4 mr-2" />
+              Budget Planner
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               <BarChart3 className="w-4 h-4 mr-2" />
