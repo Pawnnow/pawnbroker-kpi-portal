@@ -19,8 +19,10 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useUserLocations } from "@/hooks/useUserLocations";
 import { useVisibleKpiFields } from "@/hooks/useKpiFieldConfig";
 import { useNavigate } from "react-router-dom";
-import { LogOut, ArrowLeft, Shield, Pencil, Check, X, Store, BarChart3, ClipboardList } from "lucide-react";
+import { LogOut, ArrowLeft, Shield, Pencil, Check, X, Store, BarChart3, ClipboardList, Calculator } from "lucide-react";
 import FilesDropdown from "@/components/FilesDropdown";
+import BudgetPlannerPanel from "@/components/budget/BudgetPlannerPanel";
+
 import { CURRENCY_FIELDS, isCurrencyField, isGridCurrencyField, formatAsCurrency, normalizeCurrencyValue } from "@/lib/utils";
 
 interface KpiEntry {
@@ -467,7 +469,12 @@ const ClientDashboard = () => {
               <BarChart3 className="w-4 h-4" />
               Dashboard
             </TabsTrigger>
+            <TabsTrigger value="budget" className="flex items-center gap-2">
+              <Calculator className="w-4 h-4" />
+              Budget Planner
+            </TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="entries" className="space-y-6">
             <p className="text-sm text-muted-foreground">
@@ -549,6 +556,11 @@ const ClientDashboard = () => {
           <TabsContent value="dashboard">
             <DashboardCharts />
           </TabsContent>
+
+          <TabsContent value="budget">
+            <BudgetPlannerPanel />
+          </TabsContent>
+
         </Tabs>
       </main>
     </div>
