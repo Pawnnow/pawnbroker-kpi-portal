@@ -59,17 +59,27 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
       }
       setUserId(uid);
 
-      const locFilter = <T extends { eq: (c: string, v: string) => T; is: (c: string, v: null) => T }>(q: T) =>
-        locationId ? q.eq("location_id", locationId) : q.is("location_id", null);
+      let cellsQ = supabase.from("budget_cells").select("year,month,category_key,value").eq("user_id", uid);
+      let settingsQ = supabase.from("budget_year_settings").select("*").eq("user_id", uid);
+      let catsQ = supabase.from("budget_categories").select("category_key,label").eq("user_id", uid);
+      let kpiQ = supabase.from("kpi_entries").select("year,month,field_name,field_value").eq("user_id", uid);
+      if (locationId) {
+        cellsQ = cellsQ.eq("location_id", locationId);
+        settingsQ = settingsQ.eq("location_id", locationId);
+        catsQ = catsQ.eq("location_id", locationId);
+        kpiQ = kpiQ.eq("location_id", locationId);
+      } else {
+        cellsQ = cellsQ.is("location_id", null);
+        settingsQ = settingsQ.is("location_id", null);
+        catsQ = catsQ.is("location_id", null);
+      }
 
-      const [cellsRes, settingsRes, catsRes, kpiRes] = await Promise.all([
-        locFilter(supabase.from("budget_cells").select("year,month,category_key,value").eq("user_id", uid) as never) as never,
-        locFilter(supabase.from("budget_year_settings").select("*").eq("user_id", uid) as never) as never,
-        locFilter(supabase.from("budget_categories").select("category_key,label").eq("user_id", uid) as never) as never,
-        (locationId
-          ? supabase.from("kpi_entries").select("year,month,field_name,field_value").eq("user_id", uid).eq("location_id", locationId)
-          : supabase.from("kpi_entries").select("year,month,field_name,field_value").eq("user_id", uid)) as never,
-      ]) as Array<{ data: Record<string, unknown>[] | null }>;
+      const [cellsRes, settingsRes, catsRes, kpiRes] = (await Promise.all([
+        cellsQ,
+        settingsQ,
+        catsQ,
+        kpiQ,
+      ])) as unknown as Array<{ data: Record<string, unknown>[] | null }>;
 
       if (cancelled) return;
 
