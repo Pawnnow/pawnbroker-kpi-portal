@@ -82,7 +82,7 @@ export const EXPENSE_LINES: BudgetLine[] = [
 
 export const PAWN_LINES: BudgetLine[] = [
   { key: "pawn_loans_originated", label: "Pawn Loans Originated (cash out)", section: "pawn", kind: "input", kpiField: "dollar_pawns_written" },
-  { key: "pawn_redeems_principal", label: "Pawn Redeems - Principal Returned (cash in)", section: "pawn", kind: "input", kpiField: "dollar_pawns_redeemed" },
+  { key: "pawn_redeems_principal", label: "Pawn Redeems - Principal Returned (cash in)", section: "pawn", kind: "input", kpiField: "dollar_pawns_redeemed_principal" },
   { key: "pawn_defaults_inventory", label: "Pawn Defaults - $ Moved to Inventory (non-cash)", section: "pawn", kind: "input", kpiField: "dollar_pawns_defaulted" },
   { key: "buys_outright", label: "Buys - Outright Purchases (cash out, adds to Inventory)", section: "pawn", kind: "input", kpiField: "dollar_buys_30d" },
   { key: "beginning_inventory", label: "Beginning Inventory", section: "pawn", kind: "calc" },
