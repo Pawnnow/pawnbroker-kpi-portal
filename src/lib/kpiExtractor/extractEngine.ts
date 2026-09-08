@@ -460,6 +460,12 @@ export async function extractKpiData(opts: ExtractOptions): Promise<ExtractResul
     // Built from the full unfiltered pawn table to avoid silent cross-store join failures.
     const pawnPrincipalById = {};
     allPawns.forEach(p => { pawnPrincipalById[p.pawn_id] = num(p.original_principal); });
+    // Outstanding principal balance immediately before redemption — differs from
+    // original_principal only when a partial principal paydown or an "add to loan"
+    // adjustment happened sometime between origination and redemption (~1% of
+    // redemptions in practice, but can be a large dollar swing on the loans it hits).
+    const pawnCurrentPrincipalById = {};
+    allPawns.forEach(p => { pawnCurrentPrincipalById[p.pawn_id] = num(p.current_principal); });
 
     // void_type_id → human label (e.g. 1 → "pawn"), from options_void_types.txt.
     const voidTypeLabel = {};
@@ -666,9 +672,11 @@ export async function extractKpiData(opts: ExtractOptions): Promise<ExtractResul
         row('pawn','dollar_pawns_renewed_30d','$ Pawns Renewed', extMonth.reduce((s,e)=>s+num(e.current_principal),0));
 
         const redeemsPrincipal = pickedUpMonth.reduce((s,pu)=> s + (pawnPrincipalById[pu.pawn_id] || 0), 0);
+        const redeemsPrincipalOutstanding = pickedUpMonth.reduce((s,pu)=> s + (pawnCurrentPrincipalById[pu.pawn_id] || 0), 0);
         const redeemsTotalPaid = pickedUpMonth.reduce((s,pu)=> s + num(pu.interest_paid) + (pawnPrincipalById[pu.pawn_id] || 0), 0);
         row('pawn','num_pawns_redeemed','# Pawns Redeemed', pickedUpMonth.length);
-        row('pawn','dollar_pawns_redeemed','$ Pawns Redeemed', redeemsPrincipal);
+        row('pawn','dollar_pawns_redeemed','$ Pawns Redeemed (Principal)', redeemsPrincipal);
+        row('pawn','dollar_pawns_redeemed_principal','$ Pawns Redeemed — Outstanding Principal at Redemption', redeemsPrincipalOutstanding);
         row('pawn','dollar_pawns_redeemed_total','$ Pawns Redeemed (Total Paid)', redeemsTotalPaid);
 
         // ── BUY ──
