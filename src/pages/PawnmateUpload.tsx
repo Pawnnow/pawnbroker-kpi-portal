@@ -18,7 +18,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useUserLocations } from "@/hooks/useUserLocations";
 import { useSoftwarePlatform } from "@/hooks/useSoftwarePlatform";
 import { useNavigate } from "react-router-dom";
-import { LogOut, BarChart3, Shield, Store } from "lucide-react";
+import { LogOut, BarChart3, Shield, Store, Calculator } from "lucide-react";
 
 const PawnmateUpload = () => {
   const navigate = useNavigate();
