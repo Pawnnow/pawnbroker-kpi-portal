@@ -78,7 +78,7 @@ const YearGrid = ({ tab, data }: Props) => {
             {SECTIONS.map((section) => (
               <>
                 <tr key={section.title} className="bg-secondary/60">
-                  <td className="p-2 font-semibold sticky left-0 bg-secondary/60" colSpan={MONTHS.length + (isBudget ? 3 : 2)}>
+                  <td className="p-2 font-semibold sticky left-0 bg-secondary/60" colSpan={MONTHS.length + (isBudget ? 5 : 4)}>
                     {section.title}
                   </td>
                 </tr>
