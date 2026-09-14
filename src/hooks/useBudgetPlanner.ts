@@ -318,7 +318,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
       carrySettings = yearSettings;
       prevTab = tab;
     }
-    return out;
+    return { computed: out, priorTabId: prior };
   }, [cells, settings, kpiActuals, years, adjustment]);
 
   useEffect(() => () => {
