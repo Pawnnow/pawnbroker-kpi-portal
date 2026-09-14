@@ -70,6 +70,8 @@ const YearGrid = ({ tab, data }: Props) => {
                 <th key={m} className="p-2 w-24 text-right">{m}</th>
               ))}
               <th className="p-2 w-28 text-right">Total</th>
+              <th className="p-2 w-28 text-right">YoY Growth %</th>
+              <th className="p-2 w-28 text-right">% of Revenue</th>
             </tr>
           </thead>
           <tbody>
