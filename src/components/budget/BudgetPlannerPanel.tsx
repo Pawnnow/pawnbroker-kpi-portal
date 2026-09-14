@@ -68,9 +68,9 @@ const BudgetPlannerPanel = () => {
             <TabsTrigger value="instructions">Instructions</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="categories">Category Setup</TabsTrigger>
-            {data.years.all.map((y) => (
-              <TabsTrigger key={y} value={String(y)}>
-                {y}{data.years.projected.includes(y) ? "*" : ""}
+            {data.years.all.map((t) => (
+              <TabsTrigger key={t.id} value={t.id}>
+                {t.label}
               </TabsTrigger>
             ))}
             <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
@@ -80,16 +80,15 @@ const BudgetPlannerPanel = () => {
           <TabsContent value="instructions" className="mt-6"><BudgetInstructions /></TabsContent>
           <TabsContent value="dashboard" className="mt-6"><BudgetDashboard data={data} /></TabsContent>
           <TabsContent value="categories" className="mt-6"><CategorySetup data={data} /></TabsContent>
-          {data.years.all.map((y) => (
-            <TabsContent key={y} value={String(y)} className="mt-6">
-              <YearGrid year={y} isProjected={data.years.projected.includes(y)} data={data} />
+          {data.years.all.map((t) => (
+            <TabsContent key={t.id} value={t.id} className="mt-6">
+              <YearGrid tab={t} data={data} />
             </TabsContent>
           ))}
           <TabsContent value="cashflow" className="mt-6"><CashFlowTable data={data} /></TabsContent>
           <TabsContent value="bva" className="mt-6"><BudgetVsActual data={data} /></TabsContent>
         </Tabs>
       )}
-      <p className="text-xs text-muted-foreground">* Projected year</p>
     </div>
   );
 };
