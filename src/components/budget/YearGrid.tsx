@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { INCOME_LINES, EXPENSE_LINES, PAWN_LINES, MONTHS, BudgetLine, PlanTab } from "@/lib/budgetPlanner/categories";
-import { fmtMoney, sum, DEFAULT_SETTINGS } from "@/lib/budgetPlanner/engine";
+import { fmtMoney, sum, DEFAULT_SETTINGS, yoyGrowth, pctOfRevenue, fmtPctCell } from "@/lib/budgetPlanner/engine";
 import type { BudgetPlannerData } from "@/hooks/useBudgetPlanner";
 
 interface Props {
