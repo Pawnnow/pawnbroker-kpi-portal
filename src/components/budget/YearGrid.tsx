@@ -85,6 +85,8 @@ const YearGrid = ({ tab, data }: Props) => {
                 {section.lines.map((line) => {
                   const series = computed?.values[line.key] ?? Array(12).fill(0);
                   const isCalc = line.kind === "calc";
+                  const total = sum(series);
+                  const yoy = priorValues ? yoyGrowth(total, sum(priorValues[line.key] ?? [])) : null;
                   return (
                     <tr key={line.key} className={line.emphasis ? "font-semibold bg-muted/40" : ""}>
                       <td className="p-2 sticky left-0 bg-card border-r border-border">{data.labels[line.key]}</td>
