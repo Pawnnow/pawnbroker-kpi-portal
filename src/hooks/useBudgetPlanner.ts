@@ -250,8 +250,9 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
     [cells],
   );
 
-  const computed = useMemo(() => {
+  const { computed, priorTabId } = useMemo(() => {
     const out: Record<string, ComputedYear> = {};
+    const prior: Record<string, string | null> = {};
     let carryInventory: number | null = null;
     let carrySettings: YearSettings | null = null;
     let prevTab: PlanTab | null = null;
