@@ -295,6 +295,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
       }
 
       let inputs = raw;
+      prior[tab.id] = prevTab ? prevTab.id : null;
       if (isBudget) {
         // Base = prior year's actuals when they contain data, otherwise the prior
         // budget tab (e.g. 2028 Budget falls back to 2027 Budget until 2027 data exists).
