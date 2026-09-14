@@ -1,0 +1,12 @@
+ALTER TABLE public.budget_cells ADD COLUMN scenario text NOT NULL DEFAULT 'budget';
+ALTER TABLE public.budget_year_settings ADD COLUMN scenario text NOT NULL DEFAULT 'budget';
+UPDATE public.budget_cells SET scenario = 'budget';
+UPDATE public.budget_year_settings SET scenario = 'budget';
+DROP INDEX IF EXISTS budget_cells_user_id_location_id_year_month_category_key;
+DROP INDEX IF EXISTS budget_cells_user_location_year_month_key;
+DROP INDEX IF EXISTS budget_year_settings_user_id_location_id_year;
+DROP INDEX IF EXISTS budget_year_settings_user_location_year;
+DROP INDEX IF EXISTS idx_budget_cells_unique;
+DROP INDEX IF EXISTS idx_budget_year_settings_unique;
+CREATE UNIQUE INDEX idx_budget_cells_unique ON public.budget_cells (user_id, location_id, year, month, category_key, scenario) NULLS NOT DISTINCT;
+CREATE UNIQUE INDEX idx_budget_year_settings_unique ON public.budget_year_settings (user_id, location_id, year, scenario) NULLS NOT DISTINCT;
