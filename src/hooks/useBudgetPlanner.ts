@@ -33,6 +33,8 @@ export interface BudgetPlannerData {
   adjustment: (tabId: string, key: string) => number;
   /** computed values per tab id */
   computed: Record<string, ComputedYear>;
+  /** tab id this tab is compared against for YoY growth (null for the earliest) */
+  priorTabId: Record<string, string | null>;
   kpiActuals: Record<string, number>; // `${scenario}:${year}:${month}:${lineKey}` (actual scenario only)
   saving: boolean;
 }
