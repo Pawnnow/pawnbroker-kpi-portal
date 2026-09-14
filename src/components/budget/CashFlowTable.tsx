@@ -32,8 +32,8 @@ const CashFlowTable = ({ data }: { data: BudgetPlannerData }) => {
         ];
 
         return (
-          <div key={year} className="bg-card border border-border rounded-lg overflow-x-auto">
-            <h3 className="font-semibold p-3 border-b border-border">{year} Cash Flow</h3>
+          <div key={tab.id} className="bg-card border border-border rounded-lg overflow-x-auto">
+            <h3 className="font-semibold p-3 border-b border-border">{tab.label} Cash Flow</h3>
             <table className="text-sm w-full border-collapse">
               <thead className="bg-muted">
                 <tr>
