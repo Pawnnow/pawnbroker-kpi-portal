@@ -19,6 +19,10 @@ const YearGrid = ({ tab, data }: Props) => {
   const isBudget = tab.scenario === "budget";
   const computed = data.computed[tab.id];
   const settings = data.settings[tab.id] ?? DEFAULT_SETTINGS;
+  const priorId = data.priorTabId?.[tab.id] ?? null;
+  const priorTab = priorId ? data.years.all.find((t) => t.id === priorId) ?? null : null;
+  const priorValues = priorId ? data.computed[priorId]?.values : undefined;
+  const revenue = sum(computed?.values.total_income ?? []);
 
   const numberField = (label: string, value: number, onChange: (n: number) => void, isPct = false) => (
     <div>
