@@ -184,3 +184,22 @@ export const fmtMoney = (n: number) =>
 
 export const fmtPct = (n: number) =>
   `${(n * 100).toFixed(1)}%`;
+
+/** Mirrors =IFERROR((cur-prior)/ABS(prior),"-") */
+export const yoyGrowth = (current: number, prior: number | undefined | null): number | null => {
+  if (prior === undefined || prior === null || prior === 0 || !Number.isFinite(prior)) return null;
+  return (current - prior) / Math.abs(prior);
+};
+
+/** Mirrors =IFERROR(total/totalIncome,"-") */
+export const pctOfRevenue = (total: number, totalIncome: number): number | null => {
+  if (!totalIncome || !Number.isFinite(totalIncome)) return null;
+  return total / totalIncome;
+};
+
+/** One decimal, negatives in parentheses, dash when not computable. */
+export const fmtPctCell = (n: number | null): string => {
+  if (n === null || !Number.isFinite(n)) return "-";
+  const s = `${(Math.abs(n) * 100).toFixed(1)}%`;
+  return n < 0 ? `(${s})` : s;
+};
