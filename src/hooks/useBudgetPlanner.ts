@@ -303,9 +303,11 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
         const priorActual = out[priorActualId];
         const priorActualHasData =
           priorActual && INPUT_KEYS.some((k) => (priorActual.values[k] ?? []).some((v) => v !== 0));
+        const fallbackId = out[`budget-${tab.year - 1}`] ? `budget-${tab.year - 1}` : `actual-${tab.year - 1}`;
         const baseValues = priorActualHasData
           ? priorActual.values
-          : (prevTab ? out[prevTab.id]?.values : undefined) ?? {};
+          : out[fallbackId]?.values ?? {};
+        prior[tab.id] = priorActualHasData ? priorActualId : out[fallbackId] ? fallbackId : null;
         const adj: Record<string, number> = {};
         INPUT_KEYS.forEach((k) => (adj[k] = adjustment(tab.id, k)));
         inputs = projectInputs(baseValues, adj, raw);
