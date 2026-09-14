@@ -3,16 +3,17 @@ import { computeCashFlow, fmtMoney, sum, DEFAULT_SETTINGS } from "@/lib/budgetPl
 import type { BudgetPlannerData } from "@/hooks/useBudgetPlanner";
 
 const CashFlowTable = ({ data }: { data: BudgetPlannerData }) => {
-  const startYear = data.years.actual[data.years.actual.length - 1];
-  const yearsShown = [startYear, ...data.years.projected];
+  const currentYear = new Date().getFullYear();
+  const startTab = data.years.actual.find((t) => t.year === currentYear) ?? data.years.actual[0];
+  const tabsShown = [startTab, ...data.years.budget];
 
-  let carryCash = (data.settings[startYear] ?? DEFAULT_SETTINGS).beginning_cash;
+  let carryCash = (data.settings[startTab.id] ?? DEFAULT_SETTINGS).beginning_cash;
 
   return (
     <div className="space-y-8">
-      {yearsShown.map((year) => {
-        const v = data.computed[year]?.values ?? {};
-        const beginningCash = data.settings[year]?.beginning_cash ?? carryCash;
+      {tabsShown.map((tab) => {
+        const v = data.computed[tab.id]?.values ?? {};
+        const beginningCash = data.settings[tab.id]?.beginning_cash ?? carryCash;
         const cf = computeCashFlow(v, beginningCash);
         carryCash = cf.endingCashDec;
 
