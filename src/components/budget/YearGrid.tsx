@@ -133,6 +133,12 @@ const YearGrid = ({ tab, data }: Props) => {
           </tbody>
         </table>
       </div>
+      <p className="text-xs text-muted-foreground">
+        {priorTab
+          ? `YoY Growth % compares each annual total with ${priorTab.label}. `
+          : "YoY Growth % needs a prior year to compare against. "}
+        % of Revenue is each annual total divided by Total Income for {tab.label}.
+      </p>
       {!isBudget && (
         <p className="text-xs text-muted-foreground">
           Greyed numbers shown as placeholders come from your submitted KPI data for that month. Typing a value
