@@ -33,6 +33,8 @@ export interface BudgetPlannerData {
   adjustment: (tabId: string, key: string) => number;
   /** computed values per tab id */
   computed: Record<string, ComputedYear>;
+  /** tab id this tab is compared against for YoY growth (null for the earliest) */
+  priorTabId: Record<string, string | null>;
   kpiActuals: Record<string, number>; // `${scenario}:${year}:${month}:${lineKey}` (actual scenario only)
   saving: boolean;
 }
@@ -248,8 +250,9 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
     [cells],
   );
 
-  const computed = useMemo(() => {
+  const { computed, priorTabId } = useMemo(() => {
     const out: Record<string, ComputedYear> = {};
+    const prior: Record<string, string | null> = {};
     let carryInventory: number | null = null;
     let carrySettings: YearSettings | null = null;
     let prevTab: PlanTab | null = null;
@@ -292,6 +295,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
       }
 
       let inputs = raw;
+      prior[tab.id] = prevTab ? prevTab.id : null;
       if (isBudget) {
         // Base = prior year's actuals when they contain data, otherwise the prior
         // budget tab (e.g. 2028 Budget falls back to 2027 Budget until 2027 data exists).
@@ -299,9 +303,11 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
         const priorActual = out[priorActualId];
         const priorActualHasData =
           priorActual && INPUT_KEYS.some((k) => (priorActual.values[k] ?? []).some((v) => v !== 0));
+        const fallbackId = out[`budget-${tab.year - 1}`] ? `budget-${tab.year - 1}` : `actual-${tab.year - 1}`;
         const baseValues = priorActualHasData
           ? priorActual.values
-          : (prevTab ? out[prevTab.id]?.values : undefined) ?? {};
+          : out[fallbackId]?.values ?? {};
+        prior[tab.id] = priorActualHasData ? priorActualId : out[fallbackId] ? fallbackId : null;
         const adj: Record<string, number> = {};
         INPUT_KEYS.forEach((k) => (adj[k] = adjustment(tab.id, k)));
         inputs = projectInputs(baseValues, adj, raw);
@@ -312,7 +318,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
       carrySettings = yearSettings;
       prevTab = tab;
     }
-    return out;
+    return { computed: out, priorTabId: prior };
   }, [cells, settings, kpiActuals, years, adjustment]);
 
   useEffect(() => () => {
@@ -336,6 +342,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
     setCell,
     adjustment,
     computed,
+    priorTabId,
     kpiActuals,
     saving,
   };

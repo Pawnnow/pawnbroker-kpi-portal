@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { INCOME_LINES, EXPENSE_LINES, PAWN_LINES, MONTHS, BudgetLine, PlanTab } from "@/lib/budgetPlanner/categories";
-import { fmtMoney, sum, DEFAULT_SETTINGS } from "@/lib/budgetPlanner/engine";
+import { fmtMoney, sum, DEFAULT_SETTINGS, yoyGrowth, pctOfRevenue, fmtPctCell } from "@/lib/budgetPlanner/engine";
 import type { BudgetPlannerData } from "@/hooks/useBudgetPlanner";
 
 interface Props {
@@ -19,6 +19,10 @@ const YearGrid = ({ tab, data }: Props) => {
   const isBudget = tab.scenario === "budget";
   const computed = data.computed[tab.id];
   const settings = data.settings[tab.id] ?? DEFAULT_SETTINGS;
+  const priorId = data.priorTabId?.[tab.id] ?? null;
+  const priorTab = priorId ? data.years.all.find((t) => t.id === priorId) ?? null : null;
+  const priorValues = priorId ? data.computed[priorId]?.values : undefined;
+  const revenue = sum(computed?.values.total_income ?? []);
 
   const numberField = (label: string, value: number, onChange: (n: number) => void, isPct = false) => (
     <div>
@@ -66,19 +70,23 @@ const YearGrid = ({ tab, data }: Props) => {
                 <th key={m} className="p-2 w-24 text-right">{m}</th>
               ))}
               <th className="p-2 w-28 text-right">Total</th>
+              <th className="p-2 w-28 text-right">YoY Growth %</th>
+              <th className="p-2 w-28 text-right">% of Revenue</th>
             </tr>
           </thead>
           <tbody>
             {SECTIONS.map((section) => (
               <>
                 <tr key={section.title} className="bg-secondary/60">
-                  <td className="p-2 font-semibold sticky left-0 bg-secondary/60" colSpan={MONTHS.length + (isBudget ? 3 : 2)}>
+                  <td className="p-2 font-semibold sticky left-0 bg-secondary/60" colSpan={MONTHS.length + (isBudget ? 5 : 4)}>
                     {section.title}
                   </td>
                 </tr>
                 {section.lines.map((line) => {
                   const series = computed?.values[line.key] ?? Array(12).fill(0);
                   const isCalc = line.kind === "calc";
+                  const total = sum(series);
+                  const yoy = priorValues ? yoyGrowth(total, sum(priorValues[line.key] ?? [])) : null;
                   return (
                     <tr key={line.key} className={line.emphasis ? "font-semibold bg-muted/40" : ""}>
                       <td className="p-2 sticky left-0 bg-card border-r border-border">{data.labels[line.key]}</td>
@@ -110,7 +118,13 @@ const YearGrid = ({ tab, data }: Props) => {
                           </td>
                         ),
                       )}
-                      <td className="p-2 text-right tabular-nums font-medium">{fmtMoney(sum(series))}</td>
+                      <td className="p-2 text-right tabular-nums font-medium">{fmtMoney(total)}</td>
+                      <td className="p-2 text-right tabular-nums text-muted-foreground">
+                        {priorValues ? fmtPctCell(yoy) : "N/A - no prior year"}
+                      </td>
+                      <td className="p-2 text-right tabular-nums text-muted-foreground">
+                        {fmtPctCell(pctOfRevenue(total, revenue))}
+                      </td>
                     </tr>
                   );
                 })}
@@ -119,6 +133,12 @@ const YearGrid = ({ tab, data }: Props) => {
           </tbody>
         </table>
       </div>
+      <p className="text-xs text-muted-foreground">
+        {priorTab
+          ? `YoY Growth % compares each annual total with ${priorTab.label}. `
+          : "YoY Growth % needs a prior year to compare against. "}
+        % of Revenue is each annual total divided by Total Income for {tab.label}.
+      </p>
       {!isBudget && (
         <p className="text-xs text-muted-foreground">
           Greyed numbers shown as placeholders come from your submitted KPI data for that month. Typing a value
