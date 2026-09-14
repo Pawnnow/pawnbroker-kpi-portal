@@ -1,3 +1,3 @@
 # Roadmap
 
-- Budget planner: split 2027 actual from 2027 Budget (scenario column, projection fallback, tab renames, Budget vs Actual pickers)
+- [done] Budget planner: 2027 actual tab separate from 2027 Budget, projection fallback, Budget vs Actual pickers
