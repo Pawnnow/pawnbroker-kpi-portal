@@ -118,7 +118,13 @@ const YearGrid = ({ tab, data }: Props) => {
                           </td>
                         ),
                       )}
-                      <td className="p-2 text-right tabular-nums font-medium">{fmtMoney(sum(series))}</td>
+                      <td className="p-2 text-right tabular-nums font-medium">{fmtMoney(total)}</td>
+                      <td className="p-2 text-right tabular-nums text-muted-foreground">
+                        {priorValues ? fmtPctCell(yoy) : "N/A - no prior year"}
+                      </td>
+                      <td className="p-2 text-right tabular-nums text-muted-foreground">
+                        {fmtPctCell(pctOfRevenue(total, revenue))}
+                      </td>
                     </tr>
                   );
                 })}
