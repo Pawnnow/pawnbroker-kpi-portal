@@ -342,6 +342,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
     setCell,
     adjustment,
     computed,
+    priorTabId,
     kpiActuals,
     saving,
   };
