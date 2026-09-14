@@ -147,6 +147,7 @@ export type Database = {
           id: string
           location_id: string | null
           month: number
+          scenario: string
           updated_at: string
           user_id: string
           value: number | null
@@ -158,6 +159,7 @@ export type Database = {
           id?: string
           location_id?: string | null
           month: number
+          scenario?: string
           updated_at?: string
           user_id: string
           value?: number | null
@@ -169,6 +171,7 @@ export type Database = {
           id?: string
           location_id?: string | null
           month?: number
+          scenario?: string
           updated_at?: string
           user_id?: string
           value?: number | null
@@ -199,6 +202,7 @@ export type Database = {
           futa_suta_rate: number
           id: string
           location_id: string | null
+          scenario: string
           starting_cash: number
           tax_rate_city: number
           tax_rate_county: number
@@ -214,6 +218,7 @@ export type Database = {
           futa_suta_rate?: number
           id?: string
           location_id?: string | null
+          scenario?: string
           starting_cash?: number
           tax_rate_city?: number
           tax_rate_county?: number
@@ -229,6 +234,7 @@ export type Database = {
           futa_suta_rate?: number
           id?: string
           location_id?: string | null
+          scenario?: string
           starting_cash?: number
           tax_rate_city?: number
           tax_rate_county?: number

@@ -108,9 +108,37 @@ export const KPI_TO_LINE: Record<string, string> = Object.fromEntries(
 
 export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** Years shown: 4 actual (current year and the 3 before) + 3 projected */
+export type Scenario = "actual" | "budget";
+
+export interface PlanTab {
+  /** stable tab id: "actual-2027" or "budget-2028" */
+  id: string;
+  year: number;
+  scenario: Scenario;
+  /** display label: "2027" or "2027 Budget" */
+  label: string;
+}
+
+/**
+ * Tabs shown: 4 actual years ending at the current year, plus the next year's
+ * actual tab (so data can be seen as it is uploaded), then 3 budget years.
+ * A budget year projects from the prior year's actuals when they exist,
+ * otherwise from the prior year's budget.
+ */
 export function planYears(currentYear: number) {
-  const actual = [currentYear - 3, currentYear - 2, currentYear - 1, currentYear];
-  const projected = [currentYear + 1, currentYear + 2, currentYear + 3];
-  return { actual, projected, all: [...actual, ...projected] };
+  const actualYears = [currentYear - 3, currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
+  const budgetYears = [currentYear + 1, currentYear + 2, currentYear + 3];
+  const actual: PlanTab[] = actualYears.map((year) => ({
+    id: `actual-${year}`,
+    year,
+    scenario: "actual",
+    label: String(year),
+  }));
+  const budget: PlanTab[] = budgetYears.map((year) => ({
+    id: `budget-${year}`,
+    year,
+    scenario: "budget",
+    label: `${year} Budget`,
+  }));
+  return { actual, budget, all: [...actual, ...budget] };
 }

@@ -1,34 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { KPI_TO_LINE, INPUT_KEYS, LINE_BY_KEY, planYears } from "@/lib/budgetPlanner/categories";
+import { KPI_TO_LINE, INPUT_KEYS, LINE_BY_KEY, planYears, PlanTab } from "@/lib/budgetPlanner/categories";
 import {
   DEFAULT_SETTINGS,
   YearSettings,
   ValueMap,
   zeros,
+  sum,
   computeYear,
   projectInputs,
   ComputedYear,
 } from "@/lib/budgetPlanner/engine";
 
-type CellKey = string; // `${year}:${month}:${lineKey}`
+/** `${scenario}:${year}:${month}:${lineKey}` */
+type CellKey = string;
 
-const ck = (year: number, month: number, key: string): CellKey => `${year}:${month}:${key}`;
+const ck = (scenario: string, year: number, month: number, key: string): CellKey =>
+  `${scenario}:${year}:${month}:${key}`;
 
 export interface BudgetPlannerData {
   loading: boolean;
   years: ReturnType<typeof planYears>;
   labels: Record<string, string>;
   setLabel: (key: string, label: string) => void;
-  settings: Record<number, YearSettings>;
-  setSetting: (year: number, patch: Partial<YearSettings>) => void;
+  /** settings per tab id (actual-YYYY / budget-YYYY) */
+  settings: Record<string, YearSettings>;
+  setSetting: (tabId: string, patch: Partial<YearSettings>) => void;
   /** raw user-entered override for a cell, "" if none */
-  cellRaw: (year: number, month: number, key: string) => string;
-  setCell: (year: number, month: number, key: string, raw: string) => void;
-  /** adjustment % (as decimal) for a projected year line */
-  adjustment: (year: number, key: string) => number;
-  computed: Record<number, ComputedYear>;
-  kpiActuals: Record<string, number>; // `${year}:${month}:${lineKey}`
+  cellRaw: (tabId: string, month: number, key: string) => string;
+  setCell: (tabId: string, month: number, key: string, raw: string) => void;
+  /** adjustment % (as decimal) for a budget tab line */
+  adjustment: (tabId: string, key: string) => number;
+  /** computed values per tab id */
+  computed: Record<string, ComputedYear>;
+  kpiActuals: Record<string, number>; // `${scenario}:${year}:${month}:${lineKey}` (actual scenario only)
   saving: boolean;
 }
 
@@ -41,7 +46,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
   const [userId, setUserId] = useState<string | null>(null);
   const [cells, setCells] = useState<Record<CellKey, string>>({});
   const [labels, setLabels] = useState<Record<string, string>>({});
-  const [settings, setSettings] = useState<Record<number, YearSettings>>({});
+  const [settings, setSettings] = useState<Record<string, YearSettings>>({});
   const [kpiActuals, setKpiActuals] = useState<Record<string, number>>({});
 
   const pending = useRef<Map<CellKey, number | null>>(new Map());
@@ -59,8 +64,8 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
       }
       setUserId(uid);
 
-      let cellsQ = supabase.from("budget_cells").select("year,month,category_key,value").eq("user_id", uid);
-      let settingsQ = supabase.from("budget_year_settings").select("*").eq("user_id", uid);
+      let cellsQ = supabase.from("budget_cells").select("year,month,category_key,value,scenario").eq("user_id", uid);
+      let settingsQ = supabase.from("budget_year_settings").select("*, scenario").eq("user_id", uid);
       let catsQ = supabase.from("budget_categories").select("category_key,label").eq("user_id", uid);
       let kpiQ = supabase.from("kpi_entries").select("year,month,field_name,field_value").eq("user_id", uid);
       if (locationId) {
@@ -85,13 +90,14 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
 
       const nextCells: Record<CellKey, string> = {};
       (cellsRes.data ?? []).forEach((r) => {
-        nextCells[ck(Number(r.year), Number(r.month), String(r.category_key))] =
-          r.value === null || r.value === undefined ? "" : String(r.value);
+        nextCells[
+          ck(String(r.scenario ?? "budget"), Number(r.year), Number(r.month), String(r.category_key))
+        ] = r.value === null || r.value === undefined ? "" : String(r.value);
       });
 
-      const nextSettings: Record<number, YearSettings> = {};
+      const nextSettings: Record<string, YearSettings> = {};
       (settingsRes.data ?? []).forEach((r) => {
-        nextSettings[Number(r.year)] = {
+        nextSettings[`${String(r.scenario ?? "budget")}-${Number(r.year)}`] = {
           fica_rate: Number(r.fica_rate ?? DEFAULT_SETTINGS.fica_rate),
           futa_suta_rate: Number(r.futa_suta_rate ?? DEFAULT_SETTINGS.futa_suta_rate),
           state_tax_rate: Number(r.tax_rate_state ?? DEFAULT_SETTINGS.state_tax_rate),
@@ -114,7 +120,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
         const raw = String(r.field_value ?? "").replace(/[$,]/g, "");
         const num = parseFloat(raw);
         if (Number.isNaN(num)) return;
-        const key = ck(Number(r.year), Number(r.month), line);
+        const key = ck("actual", Number(r.year), Number(r.month), line);
         nextKpi[key] = (nextKpi[key] ?? 0) + num;
       });
 
@@ -133,20 +139,21 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
   const flush = useCallback(async () => {
     if (!userId || pending.current.size === 0) return;
     const rows = Array.from(pending.current.entries()).map(([key, value]) => {
-      const [year, month, category_key] = key.split(":");
+      const [scenario, year, month, category_key] = key.split(":");
       return {
         user_id: userId,
         location_id: locationId,
         year: Number(year),
         month: Number(month),
         category_key,
+        scenario,
         value,
       };
     });
     pending.current.clear();
     setSaving(true);
     await supabase.from("budget_cells").upsert(rows, {
-      onConflict: "user_id,location_id,year,month,category_key",
+      onConflict: "user_id,location_id,year,month,category_key,scenario",
     });
     setSaving(false);
   }, [userId, locationId]);
@@ -163,8 +170,9 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
   );
 
   const setCell = useCallback(
-    (year: number, month: number, key: string, raw: string) => {
-      const k = ck(year, month, key);
+    (tabId: string, month: number, key: string, raw: string) => {
+      const [scenario, y] = tabId.split("-");
+      const k = ck(scenario, Number(y), month, key);
       setCells((prev) => ({ ...prev, [k]: raw }));
       const cleaned = raw.replace(/[$,%\s]/g, "");
       const num = cleaned === "" ? null : parseFloat(cleaned);
@@ -174,7 +182,10 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
   );
 
   const cellRaw = useCallback(
-    (year: number, month: number, key: string) => cells[ck(year, month, key)] ?? "",
+    (tabId: string, month: number, key: string) => {
+      const [scenario, y] = tabId.split("-");
+      return cells[ck(scenario, Number(y), month, key)] ?? "";
+    },
     [cells],
   );
 
@@ -194,9 +205,11 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
   );
 
   const setSetting = useCallback(
-    (year: number, patch: Partial<YearSettings>) => {
+    (tabId: string, patch: Partial<YearSettings>) => {
+      const [scenario, y] = tabId.split("-");
+      const year = Number(y);
       setSettings((prev) => {
-        const merged = { ...(prev[year] ?? DEFAULT_SETTINGS), ...patch };
+        const merged = { ...(prev[tabId] ?? DEFAULT_SETTINGS), ...patch };
         if (userId) {
           supabase
             .from("budget_year_settings")
@@ -205,6 +218,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
                 user_id: userId,
                 location_id: locationId,
                 year,
+                scenario,
                 fica_rate: merged.fica_rate,
                 futa_suta_rate: merged.futa_suta_rate,
                 tax_rate_state: merged.state_tax_rate,
@@ -213,19 +227,20 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
                 starting_cash: merged.beginning_cash,
                 beginning_inventory: merged.beginning_inventory,
               },
-              { onConflict: "user_id,location_id,year" },
+              { onConflict: "user_id,location_id,year,scenario" },
             )
             .then(() => undefined);
         }
-        return { ...prev, [year]: merged };
+        return { ...prev, [tabId]: merged };
       });
     },
     [userId, locationId],
   );
 
   const adjustment = useCallback(
-    (year: number, key: string) => {
-      const raw = cells[ck(year, 0, key)];
+    (tabId: string, key: string) => {
+      const [scenario, y] = tabId.split("-");
+      const raw = cells[ck(scenario, Number(y), 0, key)];
       if (!raw) return 0;
       const n = parseFloat(raw.replace(/[%\s]/g, ""));
       return Number.isNaN(n) ? 0 : n / 100;
@@ -234,33 +249,42 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
   );
 
   const computed = useMemo(() => {
-    const out: Record<number, ComputedYear> = {};
+    const out: Record<string, ComputedYear> = {};
     let carryInventory: number | null = null;
     let carrySettings: YearSettings | null = null;
+    let prevTab: PlanTab | null = null;
 
-    for (const year of years.all) {
-      const isProjected = years.projected.includes(year);
-      const base = settings[year] ?? {
+    for (const tab of years.all) {
+      const isBudget = tab.scenario === "budget";
+      const base = settings[tab.id] ?? {
         ...DEFAULT_SETTINGS,
-        ...(carrySettings ? { fica_rate: carrySettings.fica_rate, futa_suta_rate: carrySettings.futa_suta_rate, state_tax_rate: carrySettings.state_tax_rate, county_tax_rate: carrySettings.county_tax_rate, city_tax_rate: carrySettings.city_tax_rate } : {}),
+        ...(carrySettings
+          ? {
+              fica_rate: carrySettings.fica_rate,
+              futa_suta_rate: carrySettings.futa_suta_rate,
+              state_tax_rate: carrySettings.state_tax_rate,
+              county_tax_rate: carrySettings.county_tax_rate,
+              city_tax_rate: carrySettings.city_tax_rate,
+            }
+          : {}),
       };
       const yearSettings: YearSettings = {
         ...base,
         beginning_inventory:
-          settings[year]?.beginning_inventory ?? (carryInventory ?? base.beginning_inventory),
+          settings[tab.id]?.beginning_inventory ?? (carryInventory ?? base.beginning_inventory),
       };
 
-      // Raw inputs for this year
+      // Raw inputs for this tab
       const raw: ValueMap = {};
       for (const key of INPUT_KEYS) {
         raw[key] = Array.from({ length: 12 }, (_, m) => {
-          const typed = cells[ck(year, m + 1, key)];
+          const typed = cells[ck(tab.scenario, tab.year, m + 1, key)];
           if (typed !== undefined && typed !== "") {
             const n = parseFloat(typed.replace(/[$,\s]/g, ""));
             return Number.isNaN(n) ? 0 : n;
           }
-          if (!isProjected) {
-            const kpi = kpiActuals[ck(year, m + 1, key)];
+          if (!isBudget) {
+            const kpi = kpiActuals[ck("actual", tab.year, m + 1, key)];
             if (kpi !== undefined) return kpi;
           }
           return 0;
@@ -268,16 +292,25 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
       }
 
       let inputs = raw;
-      if (isProjected) {
-        const prior = out[year - 1]?.values ?? {};
+      if (isBudget) {
+        // Base = prior year's actuals when they contain data, otherwise the prior
+        // budget tab (e.g. 2028 Budget falls back to 2027 Budget until 2027 data exists).
+        const priorActualId = `actual-${tab.year - 1}`;
+        const priorActual = out[priorActualId];
+        const priorActualHasData =
+          priorActual && INPUT_KEYS.some((k) => (priorActual.values[k] ?? []).some((v) => v !== 0));
+        const baseValues = priorActualHasData
+          ? priorActual.values
+          : (prevTab ? out[prevTab.id]?.values : undefined) ?? {};
         const adj: Record<string, number> = {};
-        INPUT_KEYS.forEach((k) => (adj[k] = adjustment(year, k)));
-        inputs = projectInputs(prior, adj, raw);
+        INPUT_KEYS.forEach((k) => (adj[k] = adjustment(tab.id, k)));
+        inputs = projectInputs(baseValues, adj, raw);
       }
 
-      out[year] = computeYear(inputs, yearSettings);
-      carryInventory = out[year].endingInventoryDec;
+      out[tab.id] = computeYear(inputs, yearSettings);
+      carryInventory = out[tab.id].endingInventoryDec;
       carrySettings = yearSettings;
+      prevTab = tab;
     }
     return out;
   }, [cells, settings, kpiActuals, years, adjustment]);
@@ -309,3 +342,4 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
 }
 
 export const zeroSeries = zeros;
+export const sumSeries = sum;

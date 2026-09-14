@@ -8,31 +8,35 @@ import type { BudgetPlannerData } from "@/hooks/useBudgetPlanner";
 const LINES = [...INCOME_LINES, ...EXPENSE_LINES];
 
 const BudgetVsActual = ({ data }: { data: BudgetPlannerData }) => {
-  const currentYear = data.years.actual[data.years.actual.length - 1];
-  const [budgetYear, setBudgetYear] = useState(String(currentYear + 1));
-  const [actualYear, setActualYear] = useState(String(currentYear));
+  const currentYear = new Date().getFullYear();
+  const [budgetTab, setBudgetTab] = useState(`budget-${currentYear + 1}`);
+  const [actualTab, setActualTab] = useState(`actual-${currentYear}`);
 
-  const budget = data.computed[Number(budgetYear)]?.values ?? {};
-  const actual = data.computed[Number(actualYear)]?.values ?? {};
+  const budget = data.computed[budgetTab]?.values ?? {};
+  const actual = data.computed[actualTab]?.values ?? {};
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4 max-w-md">
         <div>
           <Label className="mb-1 block">Budget Year</Label>
-          <Select value={budgetYear} onValueChange={setBudgetYear}>
+          <Select value={budgetTab} onValueChange={setBudgetTab}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent className="bg-popover border-border z-50">
-              {data.years.all.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              {data.years.budget.map((t) => (
+                <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label className="mb-1 block">Actual Year</Label>
-          <Select value={actualYear} onValueChange={setActualYear}>
+          <Select value={actualTab} onValueChange={setActualTab}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent className="bg-popover border-border z-50">
-              {data.years.all.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              {data.years.actual.map((t) => (
+                <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
