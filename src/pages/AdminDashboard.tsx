@@ -470,6 +470,52 @@ const AdminDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-4">
+            <div className="w-full border border-border rounded-lg p-4 space-y-3">
+              <Label className="font-semibold">Download a specific selection</Label>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Store</Label>
+                  <Select value={exportStore} onValueChange={setExportStore}>
+                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-popover border-border z-50">
+                      <SelectItem value="all">All stores</SelectItem>
+                      {filterOptions.stores.map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Year</Label>
+                  <Select value={exportYear} onValueChange={setExportYear}>
+                    <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-popover border-border z-50">
+                      <SelectItem value="all">All years</SelectItem>
+                      {filterOptions.years.map(y => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Month</Label>
+                  <Select value={exportMonth} onValueChange={setExportMonth}>
+                    <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-popover border-border z-50">
+                      <SelectItem value="all">All months</SelectItem>
+                      {MONTH_NAMES.map((m, i) => (
+                        <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleDownloadSelection} disabled={!kpiData || kpiData.length === 0}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Selection (CSV)
+                </Button>
+              </div>
+            </div>
+
             <Button
               variant="outline"
               onClick={handleDownloadBackup}
