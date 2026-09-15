@@ -240,6 +240,37 @@ const AdminDashboard = () => {
     }
   };
 
+  const buildCsv = (rows: any[]) => {
+    const csvHeaders = [
+      "user_id", "user_email", "group", "group_label",
+      "year", "month", "category", "field_name", "field_label", "field_value",
+      "location_id", "store_code", "store_name", "currency",
+    ];
+    const csvRows = rows.map(entry =>
+      csvHeaders.map(h => {
+        let val: string;
+        if (h === "group_label") {
+          val = getGroupLabel((entry as any).group);
+        } else {
+          val = String((entry as any)[h] ?? "");
+        }
+        return val.includes(",") || val.includes('"') || val.includes("\n")
+          ? `"${val.replace(/"/g, '""')}"` : val;
+      }).join(",")
+    );
+    return [csvHeaders.join(","), ...csvRows].join("\n");
+  };
+
+  const downloadCsv = (csv: string, filename: string) => {
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleDownloadBackup = async () => {
     setIsBackingUp(true);
     try {
@@ -247,43 +278,39 @@ const AdminDashboard = () => {
         toast({ title: "No data", description: "No KPI data to backup.", variant: "destructive" });
         return;
       }
-
-      const csvHeaders = [
-        "user_id", "user_email", "group", "group_label",
-        "year", "month", "category", "field_name", "field_label", "field_value",
-        "location_id", "store_code", "store_name", "currency",
-      ];
       // Drop metadata rows — they're the source of the currency column, not output rows
       const exportRows = kpiData.filter((e: any) => e.category !== "metadata");
-      const csvRows = exportRows.map(entry =>
-        csvHeaders.map(h => {
-          let val: string;
-          if (h === "group_label") {
-            val = getGroupLabel((entry as any).group);
-          } else {
-            val = String((entry as any)[h] ?? "");
-          }
-          return val.includes(",") || val.includes('"') || val.includes("\n")
-            ? `"${val.replace(/"/g, '""')}"` : val;
-        }).join(",")
-      );
-
-      const csv = [csvHeaders.join(","), ...csvRows].join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `kpi_backup_${new Date().toISOString().split("T")[0]}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      toast({ title: "Backup downloaded", description: `${kpiData.length} entries exported to CSV.` });
+      downloadCsv(buildCsv(exportRows), `kpi_backup_${new Date().toISOString().split("T")[0]}.csv`);
+      toast({ title: "Backup downloaded", description: `${exportRows.length} entries exported to CSV.` });
     } catch (err: any) {
       toast({ title: "Backup failed", description: err.message, variant: "destructive" });
     } finally {
       setIsBackingUp(false);
     }
   };
+
+  const handleDownloadSelection = () => {
+    if (!kpiData) return;
+    const rows = kpiData.filter((e: any) => {
+      if (e.category === "metadata") return false;
+      if (exportStore !== "all" && (e.store_code ?? "") !== exportStore) return false;
+      if (exportYear !== "all" && e.year !== parseInt(exportYear)) return false;
+      if (exportMonth !== "all" && e.month !== parseInt(exportMonth)) return false;
+      return true;
+    });
+    if (rows.length === 0) {
+      toast({ title: "No matching data", description: "No entries match that store / year / month.", variant: "destructive" });
+      return;
+    }
+    const parts = [
+      exportStore !== "all" ? exportStore : "all-stores",
+      exportYear !== "all" ? exportYear : "all-years",
+      exportMonth !== "all" ? MONTH_NAMES[parseInt(exportMonth) - 1] : "all-months",
+    ];
+    downloadCsv(buildCsv(rows), `kpi_${parts.join("_")}.csv`);
+    toast({ title: "Export downloaded", description: `${rows.length} entries exported.` });
+  };
+
 
   const handleRestoreUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
