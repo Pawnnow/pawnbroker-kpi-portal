@@ -77,11 +77,12 @@ const AdminDashboard = () => {
 
   // Get unique filter options
   const filterOptions = useMemo(() => {
-    if (!kpiData) return { years: [], users: [], categories: [] };
+    if (!kpiData) return { years: [], users: [], categories: [], stores: [] };
     return {
       years: [...new Set(kpiData.map(d => d.year))].sort((a, b) => b - a),
       users: [...new Set(kpiData.map(d => d.user_email || "Unknown"))].sort(),
       categories: [...new Set(kpiData.map(d => d.category))].sort(),
+      stores: [...new Set(kpiData.map((d: any) => d.store_code).filter(Boolean))].sort() as string[],
     };
   }, [kpiData]);
 
