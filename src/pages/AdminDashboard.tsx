@@ -65,6 +65,9 @@ const AdminDashboard = () => {
   const [clearAllConfirmText, setClearAllConfirmText] = useState("");
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [exportStore, setExportStore] = useState<string>("all");
+  const [exportYear, setExportYear] = useState<string>("all");
+  const [exportMonth, setExportMonth] = useState<string>("all");
   const restoreInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = async () => {
