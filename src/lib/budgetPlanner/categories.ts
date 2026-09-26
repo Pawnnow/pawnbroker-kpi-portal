@@ -79,25 +79,21 @@ export const CONDENSED_INCOME_LINES: BudgetLine[] = [
 
 export const CONDENSED_EXPENSE_LINES: BudgetLine[] = [
   input("wages", "Wages", "expenses", ["exec_wages", "staff_wages"]),
-  input("custom_expense_6", "Custom Expense 6", "expenses", ["custom_expense_6"], true),
   calc("payroll_tax_fica", "Payroll Tax - FICA", "expenses"),
   calc("payroll_tax_futa_suta", "Payroll Tax - FUTA/SUTA", "expenses"),
   input("insurance", "Insurance", "expenses", ["medical_insurance", "liability_insurance", "other_insurance"]),
-  input("custom_expense_7", "Custom Expense 7", "expenses", ["custom_expense_7"], true),
-  input("custom_expense_8", "Custom Expense 8", "expenses", ["custom_expense_8"], true),
   input("rent", "Rent", "expenses", ["rent"]),
   input("utilities", "Utilities", "expenses", ["utilities_phone", "utilities_cable_internet", "utilities_water", "utilities_gas_electric"]),
-  ...[9, 10, 11].map((n) => input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true)),
   input("marketing", "Marketing", "expenses", ["total_marketing_spent", "marketing_print", "marketing_text", "marketing_text_sms", "marketing_social_media", "marketing_online_digital_ads", "marketing_website", "marketing_tv", "marketing_radio", "marketing_consulting"]),
-  ...[12, 13, 14, 15].map((n) => input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true)),
   input("maintenance_repairs", "Maintenance & Repairs", "expenses", ["maintenance_repairs"]),
   input("travel_meals", "Travel & Meals", "expenses", ["travel", "meals_entertainment"]),
-  input("custom_expense_16", "Custom Expense 16", "expenses", ["custom_expense_16"], true),
   input("office_supplies", "Office Supplies", "expenses", ["office_supplies"]),
   input("professional_fees", "Professional Fees (Legal/Accounting)", "expenses", ["professional_fees"]),
   input("bank_card_fees", "Bank & Credit Card Fees", "expenses", ["bank_card_fees"]),
   input("misc_expense", "Misc Expense", "expenses", ["misc_expense"]),
-  ...[1, 2, 3, 4, 5].map((n) => input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true)),
+  ...Array.from({ length: 16 }, (_, index) => index + 1).map((n) =>
+    input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true),
+  ),
   calc("total_expenses", "TOTAL EXPENSES", "expenses", true),
   calc("net_operating_income", "NET OPERATING INCOME", "expenses", true),
 ];
