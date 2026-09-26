@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { INCOME_LINES, EXPENSE_LINES } from "@/lib/budgetPlanner/categories";
+import { PLANNER_SCHEMAS, PlannerMode } from "@/lib/budgetPlanner/categories";
 import { fmtMoney, sum } from "@/lib/budgetPlanner/engine";
 import type { BudgetPlannerData } from "@/hooks/useBudgetPlanner";
 
-const LINES = [...INCOME_LINES, ...EXPENSE_LINES];
-
-const BudgetVsActual = ({ data }: { data: BudgetPlannerData }) => {
+const BudgetVsActual = ({ data, mode }: { data: BudgetPlannerData; mode: PlannerMode }) => {
+  const lines = [...PLANNER_SCHEMAS[mode].income, ...PLANNER_SCHEMAS[mode].expenses];
   const currentYear = new Date().getFullYear();
   const [budgetTab, setBudgetTab] = useState(`budget-${currentYear + 1}`);
   const [actualTab, setActualTab] = useState(`actual-${currentYear}`);
@@ -54,7 +53,7 @@ const BudgetVsActual = ({ data }: { data: BudgetPlannerData }) => {
             </tr>
           </thead>
           <tbody>
-            {LINES.map((line) => {
+            {lines.map((line) => {
               const b = sum(budget[line.key] ?? []);
               const a = sum(actual[line.key] ?? []);
               const diff = a - b;

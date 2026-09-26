@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { KPI_TO_LINE, INPUT_KEYS, LINE_BY_KEY, planYears, PlanTab } from "@/lib/budgetPlanner/categories";
+import { PLANNER_SCHEMAS, planYears, PlanTab, PlannerMode } from "@/lib/budgetPlanner/categories";
 import {
   DEFAULT_SETTINGS,
   YearSettings,
@@ -39,9 +39,10 @@ export interface BudgetPlannerData {
   saving: boolean;
 }
 
-export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
+export function useBudgetPlanner(locationId: string | null, plannerMode: PlannerMode): BudgetPlannerData {
   const currentYear = new Date().getFullYear();
   const years = useMemo(() => planYears(currentYear), [currentYear]);
+  const schema = PLANNER_SCHEMAS[plannerMode];
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,9 +67,9 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
       }
       setUserId(uid);
 
-      let cellsQ = supabase.from("budget_cells").select("year,month,category_key,value,scenario").eq("user_id", uid);
-      let settingsQ = supabase.from("budget_year_settings").select("*, scenario").eq("user_id", uid);
-      let catsQ = supabase.from("budget_categories").select("category_key,label").eq("user_id", uid);
+      let cellsQ = supabase.from("budget_cells").select("year,month,category_key,value,scenario").eq("user_id", uid).eq("planner_mode", plannerMode);
+      let settingsQ = supabase.from("budget_year_settings").select("*, scenario").eq("user_id", uid).eq("planner_mode", plannerMode);
+      let catsQ = supabase.from("budget_categories").select("category_key,label").eq("user_id", uid).eq("planner_mode", plannerMode);
       let kpiQ = supabase.from("kpi_entries").select("year,month,field_name,field_value").eq("user_id", uid);
       if (locationId) {
         cellsQ = cellsQ.eq("location_id", locationId);
@@ -117,13 +118,15 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
 
       const nextKpi: Record<string, number> = {};
       (kpiRes.data ?? []).forEach((r) => {
-        const line = KPI_TO_LINE[String(r.field_name)];
-        if (!line) return;
+         const lines = schema.kpiToLines[String(r.field_name)];
+         if (!lines) return;
         const raw = String(r.field_value ?? "").replace(/[$,]/g, "");
         const num = parseFloat(raw);
         if (Number.isNaN(num)) return;
-        const key = ck("actual", Number(r.year), Number(r.month), line);
-        nextKpi[key] = (nextKpi[key] ?? 0) + num;
+         lines.forEach((line) => {
+           const key = ck("actual", Number(r.year), Number(r.month), line);
+           nextKpi[key] = (nextKpi[key] ?? 0) + num;
+         });
       });
 
       setCells(nextCells);
@@ -136,7 +139,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
     return () => {
       cancelled = true;
     };
-  }, [locationId]);
+   }, [locationId, plannerMode, schema]);
 
   const flush = useCallback(async () => {
     if (!userId || pending.current.size === 0) return;
@@ -149,16 +152,17 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
         month: Number(month),
         category_key,
         scenario,
+        planner_mode: plannerMode,
         value,
       };
     });
     pending.current.clear();
     setSaving(true);
     await supabase.from("budget_cells").upsert(rows, {
-      onConflict: "user_id,location_id,year,month,category_key,scenario",
+       onConflict: "user_id,location_id,year,month,category_key,scenario,planner_mode",
     });
     setSaving(false);
-  }, [userId, locationId]);
+   }, [userId, locationId, plannerMode]);
 
   const queue = useCallback(
     (key: CellKey, value: number | null) => {
@@ -198,12 +202,12 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
       supabase
         .from("budget_categories")
         .upsert(
-          { user_id: userId, location_id: locationId, category_key: key, label },
-          { onConflict: "user_id,location_id,category_key" },
+           { user_id: userId, location_id: locationId, category_key: key, label, planner_mode: plannerMode },
+           { onConflict: "user_id,location_id,category_key,planner_mode" },
         )
         .then(() => undefined);
     },
-    [userId, locationId],
+     [userId, locationId, plannerMode],
   );
 
   const setSetting = useCallback(
@@ -221,6 +225,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
                 location_id: locationId,
                 year,
                 scenario,
+                planner_mode: plannerMode,
                 fica_rate: merged.fica_rate,
                 futa_suta_rate: merged.futa_suta_rate,
                 tax_rate_state: merged.state_tax_rate,
@@ -229,14 +234,14 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
                 starting_cash: merged.beginning_cash,
                 beginning_inventory: merged.beginning_inventory,
               },
-              { onConflict: "user_id,location_id,year,scenario" },
+               { onConflict: "user_id,location_id,year,scenario,planner_mode" },
             )
             .then(() => undefined);
         }
         return { ...prev, [tabId]: merged };
       });
     },
-    [userId, locationId],
+     [userId, locationId, plannerMode],
   );
 
   const adjustment = useCallback(
@@ -279,7 +284,7 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
 
       // Raw inputs for this tab
       const raw: ValueMap = {};
-      for (const key of INPUT_KEYS) {
+       for (const key of schema.inputKeys) {
         raw[key] = Array.from({ length: 12 }, (_, m) => {
           const typed = cells[ck(tab.scenario, tab.year, m + 1, key)];
           if (typed !== undefined && typed !== "") {
@@ -302,24 +307,24 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
         const priorActualId = `actual-${tab.year - 1}`;
         const priorActual = out[priorActualId];
         const priorActualHasData =
-          priorActual && INPUT_KEYS.some((k) => (priorActual.values[k] ?? []).some((v) => v !== 0));
+           priorActual && schema.inputKeys.some((k) => (priorActual.values[k] ?? []).some((v) => v !== 0));
         const fallbackId = out[`budget-${tab.year - 1}`] ? `budget-${tab.year - 1}` : `actual-${tab.year - 1}`;
         const baseValues = priorActualHasData
           ? priorActual.values
           : out[fallbackId]?.values ?? {};
         prior[tab.id] = priorActualHasData ? priorActualId : out[fallbackId] ? fallbackId : null;
         const adj: Record<string, number> = {};
-        INPUT_KEYS.forEach((k) => (adj[k] = adjustment(tab.id, k)));
-        inputs = projectInputs(baseValues, adj, raw);
+         schema.inputKeys.forEach((k) => (adj[k] = adjustment(tab.id, k)));
+         inputs = projectInputs(baseValues, adj, raw, schema.inputKeys);
       }
 
-      out[tab.id] = computeYear(inputs, yearSettings);
+       out[tab.id] = computeYear(inputs, yearSettings, plannerMode);
       carryInventory = out[tab.id].endingInventoryDec;
       carrySettings = yearSettings;
       prevTab = tab;
     }
     return { computed: out, priorTabId: prior };
-  }, [cells, settings, kpiActuals, years, adjustment]);
+   }, [cells, settings, kpiActuals, years, adjustment, schema, plannerMode]);
 
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current);
@@ -330,11 +335,11 @@ export function useBudgetPlanner(locationId: string | null): BudgetPlannerData {
     years,
     labels: useMemo(() => {
       const out: Record<string, string> = {};
-      Object.keys(LINE_BY_KEY).forEach((k) => {
-        out[k] = labels[k] ?? LINE_BY_KEY[k].label;
+       Object.keys(schema.lineByKey).forEach((k) => {
+         out[k] = labels[k] ?? schema.lineByKey[k].label;
       });
       return out;
-    }, [labels]),
+     }, [labels, schema]),
     setLabel,
     settings,
     setSetting,

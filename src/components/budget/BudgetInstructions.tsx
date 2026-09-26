@@ -5,11 +5,16 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   </div>
 );
 
-const BudgetInstructions = () => (
+const BudgetInstructions = ({ mode }: { mode: "condensed" | "full" }) => (
   <div className="bg-card border border-border rounded-lg p-6 space-y-6">
     <div>
       <h2 className="text-xl font-bold">Pawn Gorillas Mastermind — Budget &amp; Cash Flow Planner</h2>
       <p className="text-sm text-muted-foreground mt-1">How the planner is organized (month by month).</p>
+      <p className="text-sm text-muted-foreground mt-2">
+        {mode === "condensed"
+          ? "Condensed combines related expenses into fewer inputs. Its entries are separate from the Full planner."
+          : "Full provides detailed income and expense inputs. Its entries are separate from the Condensed planner."}
+      </p>
     </div>
 
     <Section title="1. Category Setup">

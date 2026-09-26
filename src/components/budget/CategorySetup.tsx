@@ -1,20 +1,21 @@
 import { Input } from "@/components/ui/input";
-import { INCOME_LINES, EXPENSE_LINES, PAWN_LINES } from "@/lib/budgetPlanner/categories";
+import { PLANNER_SCHEMAS, PlannerMode } from "@/lib/budgetPlanner/categories";
 import type { BudgetPlannerData } from "@/hooks/useBudgetPlanner";
 
-const SECTIONS = [
-  { title: "Income", lines: INCOME_LINES },
-  { title: "Monthly Expenses", lines: EXPENSE_LINES },
-  { title: "Pawn Activity, Inventory & Sales Tax", lines: PAWN_LINES },
-];
-
-const CategorySetup = ({ data }: { data: BudgetPlannerData }) => (
+const CategorySetup = ({ data, mode }: { data: BudgetPlannerData; mode: PlannerMode }) => {
+  const schema = PLANNER_SCHEMAS[mode];
+  const sections = [
+    { title: "Income", lines: schema.income },
+    { title: "Monthly Expenses", lines: schema.expenses },
+    { title: "Pawn Activity, Inventory & Sales Tax", lines: schema.pawn },
+  ];
+  return (
   <div className="space-y-6">
     <p className="text-sm text-muted-foreground">
       Rename the custom lines so they match how you track your business. Renamed lines show up everywhere in the
       planner. Calculated lines are worked out for you and cannot be renamed.
     </p>
-    {SECTIONS.map((section) => (
+    {sections.map((section) => (
       <div key={section.title} className="bg-card border border-border rounded-lg p-4">
         <h3 className="font-semibold mb-3">{section.title}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -38,6 +39,7 @@ const CategorySetup = ({ data }: { data: BudgetPlannerData }) => (
       </div>
     ))}
   </div>
-);
+  );
+};
 
 export default CategorySetup;
