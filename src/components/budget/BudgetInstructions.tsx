@@ -28,7 +28,7 @@ const BudgetInstructions = ({ mode }: { mode: "condensed" | "full" }) => (
         calculate automatically.
       </p>
       <p>
-        Payroll Tax (FICA &amp; FUTA/SUTA) is auto-calculated as a percentage of Executive + Staff Wages, including the
+        Payroll Tax (FICA &amp; FUTA/SUTA) is auto-calculated as a percentage of {mode === "condensed" ? "Wages" : "Executive + Staff Wages"}, including the
         employer's matching share. Set each store's rate in the Payroll Tax Rate settings on each year — every year can
         have its own rate. 7.65% is pre-filled for FICA; FUTA/SUTA varies by state and starts at 0%.
       </p>

@@ -52,7 +52,7 @@ export function useBudgetPlanner(locationId: string | null, plannerMode: Planner
   const [settings, setSettings] = useState<Record<string, YearSettings>>({});
   const [kpiActuals, setKpiActuals] = useState<Record<string, number>>({});
 
-  const pending = useRef<Map<CellKey, number | null>>(new Map());
+  const pending = useRef<Map<string, number | null>>(new Map());
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -144,7 +144,7 @@ export function useBudgetPlanner(locationId: string | null, plannerMode: Planner
   const flush = useCallback(async () => {
     if (!userId || pending.current.size === 0) return;
     const rows = Array.from(pending.current.entries()).map(([key, value]) => {
-      const [scenario, year, month, category_key] = key.split(":");
+      const [rowMode, scenario, year, month, category_key] = key.split(":");
       return {
         user_id: userId,
         location_id: locationId,
@@ -152,7 +152,7 @@ export function useBudgetPlanner(locationId: string | null, plannerMode: Planner
         month: Number(month),
         category_key,
         scenario,
-        planner_mode: plannerMode,
+        planner_mode: rowMode,
         value,
       };
     });
@@ -162,17 +162,17 @@ export function useBudgetPlanner(locationId: string | null, plannerMode: Planner
        onConflict: "user_id,location_id,year,month,category_key,scenario,planner_mode",
     });
     setSaving(false);
-   }, [userId, locationId, plannerMode]);
+  }, [userId, locationId]);
 
   const queue = useCallback(
     (key: CellKey, value: number | null) => {
-      pending.current.set(key, value);
+      pending.current.set(`${plannerMode}:${key}`, value);
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => {
         flush();
       }, 800);
     },
-    [flush],
+    [flush, plannerMode],
   );
 
   const setCell = useCallback(
