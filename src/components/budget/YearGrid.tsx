@@ -1,21 +1,22 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { INCOME_LINES, EXPENSE_LINES, PAWN_LINES, MONTHS, BudgetLine, PlanTab } from "@/lib/budgetPlanner/categories";
+import { PLANNER_SCHEMAS, MONTHS, BudgetLine, PlanTab, PlannerMode } from "@/lib/budgetPlanner/categories";
 import { fmtMoney, sum, DEFAULT_SETTINGS, yoyGrowth, pctOfRevenue, fmtPctCell } from "@/lib/budgetPlanner/engine";
 import type { BudgetPlannerData } from "@/hooks/useBudgetPlanner";
 
 interface Props {
   tab: PlanTab;
   data: BudgetPlannerData;
+  mode: PlannerMode;
 }
 
-const SECTIONS: Array<{ title: string; lines: BudgetLine[] }> = [
-  { title: "Income", lines: INCOME_LINES },
-  { title: "Monthly Expenses", lines: EXPENSE_LINES },
-  { title: "Pawn Activity, Inventory & Sales Tax", lines: PAWN_LINES },
-];
-
-const YearGrid = ({ tab, data }: Props) => {
+const YearGrid = ({ tab, data, mode }: Props) => {
+  const schema = PLANNER_SCHEMAS[mode];
+  const sections: Array<{ title: string; lines: BudgetLine[] }> = [
+    { title: "Income", lines: schema.income },
+    { title: "Monthly Expenses", lines: schema.expenses },
+    { title: "Pawn Activity, Inventory & Sales Tax", lines: schema.pawn },
+  ];
   const isBudget = tab.scenario === "budget";
   const computed = data.computed[tab.id];
   const settings = data.settings[tab.id] ?? DEFAULT_SETTINGS;
@@ -75,7 +76,7 @@ const YearGrid = ({ tab, data }: Props) => {
             </tr>
           </thead>
           <tbody>
-            {SECTIONS.map((section) => (
+            {sections.map((section) => (
               <>
                 <tr key={section.title} className="bg-secondary/60">
                   <td className="p-2 font-semibold sticky left-0 bg-secondary/60" colSpan={MONTHS.length + (isBudget ? 5 : 4)}>

@@ -1,144 +1,165 @@
 export type LineKind = "input" | "calc" | "header";
 export type LineSection = "income" | "expenses" | "pawn";
+export type PlannerMode = "condensed" | "full";
 
 export interface BudgetLine {
   key: string;
   label: string;
   section: LineSection;
   kind: LineKind;
-  /** Renameable by the user (custom slots) */
   renameable?: boolean;
-  /** Bold total row */
   emphasis?: boolean;
-  /** KPI field_name this line pre-fills from */
-  kpiField?: string;
+  kpiFields?: string[];
 }
 
-export const INCOME_LINES: BudgetLine[] = [
-  { key: "retail_in_store", label: "Retail Sales - In Store", section: "income", kind: "input", kpiField: "retail_sales" },
-  { key: "retail_online", label: "Retail Sales - Online", section: "income", kind: "input" },
-  { key: "total_retail_sales", label: "Total Retail Sales", section: "income", kind: "calc" },
-  { key: "cogs", label: "Cost of Goods Sold (COGS)", section: "income", kind: "input", kpiField: "retail_cogs" },
-  { key: "gross_profit", label: "Gross Profit", section: "income", kind: "calc" },
-  { key: "psc_collected", label: "Pawn Service Charges (PSC) Collected", section: "income", kind: "input", kpiField: "psc_collected" },
-  { key: "tax_exempt_scrap", label: "Tax Exempt Sales - Scrap Metal", section: "income", kind: "input", kpiField: "scrap_sales" },
-  { key: "tax_exempt_other", label: "Tax Exempt Sales - Other", section: "income", kind: "input" },
-  { key: "total_tax_exempt", label: "Total Tax Exempt Sales", section: "income", kind: "calc" },
-  { key: "misc_income", label: "Misc Income", section: "income", kind: "input", kpiField: "misc_income" },
-  { key: "custom_income_1", label: "Custom Income 1", section: "income", kind: "input", renameable: true, kpiField: "custom_income_1" },
-  { key: "custom_income_2", label: "Custom Income 2", section: "income", kind: "input", renameable: true, kpiField: "custom_income_2" },
-  { key: "custom_income_3", label: "Custom Income 3", section: "income", kind: "input", renameable: true, kpiField: "custom_income_3" },
-  { key: "total_income", label: "TOTAL INCOME", section: "income", kind: "calc", emphasis: true },
+const input = (key: string, label: string, section: LineSection, kpiFields?: string[], renameable = false): BudgetLine =>
+  ({ key, label, section, kind: "input", kpiFields, renameable });
+const calc = (key: string, label: string, section: LineSection, emphasis = false): BudgetLine =>
+  ({ key, label, section, kind: "calc", emphasis });
+
+export const FULL_INCOME_LINES: BudgetLine[] = [
+  input("retail_in_store", "Retail Sales - In Store", "income", ["retail_sales"]),
+  input("retail_online", "Retail Sales - Online", "income", ["online_sales"]),
+  calc("total_retail_sales", "Total Retail Sales", "income"),
+  input("cogs", "Cost of Goods Sold (COGS)", "income", ["retail_cogs"]),
+  calc("gross_profit", "Gross Profit", "income"),
+  input("psc_collected", "Pawn Service Charges (PSC) Collected", "income", ["psc_collected"]),
+  input("tax_exempt_scrap", "Tax Exempt Sales - Scrap Metal", "income", ["scrap_sales"]),
+  input("tax_exempt_other", "Tax Exempt Sales - Other", "income", ["tax_exempt_sales"]),
+  calc("total_tax_exempt", "Total Tax Exempt Sales", "income"),
+  input("misc_income", "Misc Income", "income", ["misc_income"]),
+  ...[1, 2, 3].map((n) => input(`custom_income_${n}`, `Custom Income ${n}`, "income", [`custom_income_${n}`], true)),
+  calc("total_income", "TOTAL INCOME", "income", true),
 ];
 
-const EXPENSE_SIMPLE: Array<[string, string, string?]> = [
-  ["exec_wages", "Executive Wages", "exec_wages"],
-  ["staff_wages", "Staff Wages", "staff_wages"],
-  ["medical_insurance", "Medical Insurance", "medical_insurance"],
-  ["liability_insurance", "Liability Insurance", "liability_insurance"],
-  ["other_insurance", "Other Insurance", "other_insurance"],
-  ["rent", "Rent", "rent"],
-  ["utilities_phone", "Utilities - Phone", "utilities_phone"],
-  ["utilities_cable_internet", "Utilities - Cable/Internet", "utilities_cable_internet"],
-  ["utilities_water", "Utilities - Water", "utilities_water"],
-  ["utilities_gas_electric", "Utilities - Gas/Electric", "utilities_gas_electric"],
-  ["marketing_print", "Marketing - Print", "marketing_print"],
-  ["marketing_text_sms", "Marketing - Text/SMS", "marketing_text_sms"],
-  ["marketing_social_media", "Marketing - Social Media", "marketing_social_media"],
-  ["marketing_online_digital_ads", "Marketing - Online/Digital Ads", "marketing_online_digital_ads"],
-  ["marketing_tv_radio", "Marketing - TV/Radio", "marketing_tv_radio"],
-  ["maintenance_repairs", "Maintenance & Repairs", "maintenance_repairs"],
-  ["travel", "Travel", "travel"],
-  ["meals_entertainment", "Meals & Entertainment", "meals_entertainment"],
-  ["office_supplies", "Office Supplies", "office_supplies"],
-  ["professional_fees", "Professional Fees (Legal/Accounting)", "professional_fees"],
-  ["bank_card_fees", "Bank & Credit Card Fees", "bank_card_fees"],
-  ["misc_expense", "Misc Expense", "misc_expense"],
+export const FULL_EXPENSE_LINES: BudgetLine[] = [
+  input("exec_wages", "Executive Wages", "expenses", ["exec_wages"]),
+  input("staff_wages", "Staff Wages", "expenses", ["staff_wages"]),
+  calc("payroll_tax_fica", "Payroll Tax - FICA", "expenses"),
+  calc("payroll_tax_futa_suta", "Payroll Tax - FUTA/SUTA", "expenses"),
+  input("medical_insurance", "Medical Insurance", "expenses", ["medical_insurance"]),
+  input("liability_insurance", "Liability Insurance", "expenses", ["liability_insurance"]),
+  input("other_insurance", "Other Insurance", "expenses", ["other_insurance"]),
+  input("rent", "Rent", "expenses", ["rent"]),
+  input("utilities_phone", "Utilities - Phone", "expenses", ["utilities_phone"]),
+  input("utilities_cable_internet", "Utilities - Cable/Internet", "expenses", ["utilities_cable_internet"]),
+  input("utilities_water", "Utilities - Water", "expenses", ["utilities_water"]),
+  input("utilities_gas_electric", "Utilities - Gas/Electric", "expenses", ["utilities_gas_electric"]),
+  input("marketing_print", "Marketing - Print", "expenses", ["marketing_print"]),
+  input("marketing_text_sms", "Marketing - Text/SMS", "expenses", ["marketing_text", "marketing_text_sms"]),
+  input("marketing_social_media", "Marketing - Social Media", "expenses", ["marketing_social_media"]),
+  input("marketing_online_digital_ads", "Marketing - Online/Digital Ads", "expenses", ["marketing_online_digital_ads", "marketing_website"]),
+  input("marketing_tv_radio", "Marketing - TV/Radio", "expenses", ["marketing_tv", "marketing_radio"]),
+  input("maintenance_repairs", "Maintenance & Repairs", "expenses", ["maintenance_repairs"]),
+  input("travel", "Travel", "expenses", ["travel"]),
+  input("meals_entertainment", "Meals & Entertainment", "expenses", ["meals_entertainment"]),
+  input("office_supplies", "Office Supplies", "expenses", ["office_supplies"]),
+  input("professional_fees", "Professional Fees (Legal/Accounting)", "expenses", ["professional_fees"]),
+  input("bank_card_fees", "Bank & Credit Card Fees", "expenses", ["bank_card_fees"]),
+  input("misc_expense", "Misc Expense", "expenses", ["misc_expense"]),
+  ...[1, 2, 3, 4, 5].map((n) => input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true)),
+  calc("total_expenses", "TOTAL EXPENSES", "expenses", true),
+  calc("net_operating_income", "NET OPERATING INCOME", "expenses", true),
 ];
 
-export const EXPENSE_LINES: BudgetLine[] = [
-  { key: "exec_wages", label: "Executive Wages", section: "expenses", kind: "input", kpiField: "exec_wages" },
-  { key: "staff_wages", label: "Staff Wages", section: "expenses", kind: "input", kpiField: "staff_wages" },
-  { key: "payroll_tax_fica", label: "Payroll Tax - FICA", section: "expenses", kind: "calc" },
-  { key: "payroll_tax_futa_suta", label: "Payroll Tax - FUTA/SUTA", section: "expenses", kind: "calc" },
-  ...EXPENSE_SIMPLE.slice(2).map(([key, label, kpiField]) => ({
-    key,
-    label,
-    section: "expenses" as const,
-    kind: "input" as const,
-    kpiField,
-  })),
-  ...[1, 2, 3, 4, 5].map((n) => ({
-    key: `custom_expense_${n}`,
-    label: `Custom Expense ${n}`,
-    section: "expenses" as const,
-    kind: "input" as const,
-    renameable: true,
-    kpiField: `custom_expense_${n}`,
-  })),
-  { key: "total_expenses", label: "TOTAL EXPENSES", section: "expenses", kind: "calc", emphasis: true },
-  { key: "net_operating_income", label: "NET OPERATING INCOME", section: "expenses", kind: "calc", emphasis: true },
+export const CONDENSED_INCOME_LINES: BudgetLine[] = [
+  input("retail_sales", "Retail Sales", "income", ["retail_sales", "online_sales"]),
+  input("custom_income_4", "Custom Income 4", "income", ["custom_income_4"], true),
+  calc("total_retail_sales", "Total Retail Sales", "income"),
+  input("cogs", "Cost of Goods Sold (COGS)", "income", ["retail_cogs"]),
+  calc("gross_profit", "Gross Profit", "income"),
+  input("psc_collected", "Pawn Service Charges (PSC) Collected", "income", ["psc_collected"]),
+  input("tax_exempt_sales", "Tax Exempt Sales", "income", ["tax_exempt_sales", "scrap_sales"]),
+  input("custom_income_5", "Custom Income 5", "income", ["custom_income_5"], true),
+  calc("total_tax_exempt", "Total Tax Exempt Sales", "income"),
+  input("misc_income", "Misc Income", "income", ["misc_income"]),
+  ...[1, 2, 3].map((n) => input(`custom_income_${n}`, `Custom Income ${n}`, "income", [`custom_income_${n}`], true)),
+  calc("total_income", "TOTAL INCOME", "income", true),
+];
+
+export const CONDENSED_EXPENSE_LINES: BudgetLine[] = [
+  input("wages", "Wages", "expenses", ["exec_wages", "staff_wages"]),
+  input("custom_expense_6", "Custom Expense 6", "expenses", ["custom_expense_6"], true),
+  calc("payroll_tax_fica", "Payroll Tax - FICA", "expenses"),
+  calc("payroll_tax_futa_suta", "Payroll Tax - FUTA/SUTA", "expenses"),
+  input("insurance", "Insurance", "expenses", ["medical_insurance", "liability_insurance", "other_insurance"]),
+  input("custom_expense_7", "Custom Expense 7", "expenses", ["custom_expense_7"], true),
+  input("custom_expense_8", "Custom Expense 8", "expenses", ["custom_expense_8"], true),
+  input("rent", "Rent", "expenses", ["rent"]),
+  input("utilities", "Utilities", "expenses", ["utilities_phone", "utilities_cable_internet", "utilities_water", "utilities_gas_electric"]),
+  ...[9, 10, 11].map((n) => input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true)),
+  input("marketing", "Marketing", "expenses", ["total_marketing_spent", "marketing_print", "marketing_text", "marketing_text_sms", "marketing_social_media", "marketing_online_digital_ads", "marketing_website", "marketing_tv", "marketing_radio", "marketing_consulting"]),
+  ...[12, 13, 14, 15].map((n) => input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true)),
+  input("maintenance_repairs", "Maintenance & Repairs", "expenses", ["maintenance_repairs"]),
+  input("travel_meals", "Travel & Meals", "expenses", ["travel", "meals_entertainment"]),
+  input("custom_expense_16", "Custom Expense 16", "expenses", ["custom_expense_16"], true),
+  input("office_supplies", "Office Supplies", "expenses", ["office_supplies"]),
+  input("professional_fees", "Professional Fees (Legal/Accounting)", "expenses", ["professional_fees"]),
+  input("bank_card_fees", "Bank & Credit Card Fees", "expenses", ["bank_card_fees"]),
+  input("misc_expense", "Misc Expense", "expenses", ["misc_expense"]),
+  ...[1, 2, 3, 4, 5].map((n) => input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true)),
+  calc("total_expenses", "TOTAL EXPENSES", "expenses", true),
+  calc("net_operating_income", "NET OPERATING INCOME", "expenses", true),
 ];
 
 export const PAWN_LINES: BudgetLine[] = [
-  { key: "pawn_loans_originated", label: "Pawn Loans Originated (cash out)", section: "pawn", kind: "input", kpiField: "dollar_pawns_written" },
-  { key: "pawn_redeems_principal", label: "Pawn Redeems - Principal Returned (cash in)", section: "pawn", kind: "input", kpiField: "dollar_pawns_redeemed_principal" },
-  { key: "pawn_defaults_inventory", label: "Pawn Defaults - $ Moved to Inventory (non-cash)", section: "pawn", kind: "input", kpiField: "dollar_pawns_defaulted" },
-  { key: "buys_outright", label: "Buys - Outright Purchases (cash out, adds to Inventory)", section: "pawn", kind: "input", kpiField: "dollar_buys_30d" },
-  { key: "beginning_inventory", label: "Beginning Inventory", section: "pawn", kind: "calc" },
-  { key: "ending_inventory", label: "Ending Inventory", section: "pawn", kind: "calc" },
-  { key: "taxable_retail_sales", label: "Taxable Retail Sales", section: "pawn", kind: "calc" },
-  { key: "sales_tax_collected", label: "Sales Tax Collected (cash in)", section: "pawn", kind: "calc" },
-  { key: "sales_tax_remitted", label: "Sales Tax Remitted (cash out)", section: "pawn", kind: "calc" },
+  input("pawn_loans_originated", "Pawn Loans Originated (cash out)", "pawn", ["dollar_pawns_written"]),
+  input("pawn_redeems_principal", "Pawn Redeems - Principal Returned (cash in)", "pawn", ["dollar_pawns_redeemed_principal"]),
+  input("pawn_defaults_inventory", "Pawn Defaults - $ Moved to Inventory (non-cash)", "pawn", ["dollar_pawns_defaulted"]),
+  input("buys_outright", "Buys - Outright Purchases (cash out, adds to Inventory)", "pawn", ["dollar_buys_30d"]),
+  calc("beginning_inventory", "Beginning Inventory", "pawn"),
+  calc("ending_inventory", "Ending Inventory", "pawn"),
+  calc("taxable_retail_sales", "Taxable Retail Sales", "pawn"),
+  calc("sales_tax_collected", "Sales Tax Collected (cash in)", "pawn"),
+  calc("sales_tax_remitted", "Sales Tax Remitted (cash out)", "pawn"),
 ];
 
-export const ALL_LINES: BudgetLine[] = [...INCOME_LINES, ...EXPENSE_LINES, ...PAWN_LINES];
-
-export const LINE_BY_KEY: Record<string, BudgetLine> = Object.fromEntries(
-  ALL_LINES.map((l) => [l.key, l]),
-);
-
-/** Input lines that carry a value the user types (or a % on projected years) */
-export const INPUT_KEYS = ALL_LINES.filter((l) => l.kind === "input").map((l) => l.key);
-
-/** Map of KPI field_name -> budget line key, for pre-filling actual years */
-export const KPI_TO_LINE: Record<string, string> = Object.fromEntries(
-  ALL_LINES.filter((l) => l.kpiField).map((l) => [l.kpiField as string, l.key]),
-);
-
-export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-export type Scenario = "actual" | "budget";
-
-export interface PlanTab {
-  /** stable tab id: "actual-2027" or "budget-2028" */
-  id: string;
-  year: number;
-  scenario: Scenario;
-  /** display label: "2027" or "2027 Budget" */
-  label: string;
+export interface PlannerSchema {
+  income: BudgetLine[];
+  expenses: BudgetLine[];
+  pawn: BudgetLine[];
+  all: BudgetLine[];
+  inputKeys: string[];
+  lineByKey: Record<string, BudgetLine>;
+  kpiToLines: Record<string, string[]>;
 }
 
-/**
- * Tabs shown: 4 actual years ending at the current year, plus the next year's
- * actual tab (so data can be seen as it is uploaded), then 3 budget years.
- * A budget year projects from the prior year's actuals when they exist,
- * otherwise from the prior year's budget.
- */
+const makeSchema = (income: BudgetLine[], expenses: BudgetLine[]): PlannerSchema => {
+  const all = [...income, ...expenses, ...PAWN_LINES];
+  const kpiToLines: Record<string, string[]> = {};
+  all.forEach((line) => line.kpiFields?.forEach((field) => {
+    kpiToLines[field] = [...(kpiToLines[field] ?? []), line.key];
+  }));
+  return {
+    income,
+    expenses,
+    pawn: PAWN_LINES,
+    all,
+    inputKeys: all.filter((line) => line.kind === "input").map((line) => line.key),
+    lineByKey: Object.fromEntries(all.map((line) => [line.key, line])),
+    kpiToLines,
+  };
+};
+
+export const PLANNER_SCHEMAS: Record<PlannerMode, PlannerSchema> = {
+  full: makeSchema(FULL_INCOME_LINES, FULL_EXPENSE_LINES),
+  condensed: makeSchema(CONDENSED_INCOME_LINES, CONDENSED_EXPENSE_LINES),
+};
+
+// Backwards-compatible exports for the unchanged full planner.
+export const INCOME_LINES = FULL_INCOME_LINES;
+export const EXPENSE_LINES = FULL_EXPENSE_LINES;
+export const ALL_LINES = PLANNER_SCHEMAS.full.all;
+export const LINE_BY_KEY = PLANNER_SCHEMAS.full.lineByKey;
+export const INPUT_KEYS = PLANNER_SCHEMAS.full.inputKeys;
+export const KPI_TO_LINE = Object.fromEntries(Object.entries(PLANNER_SCHEMAS.full.kpiToLines).map(([k, v]) => [k, v[0]]));
+export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export type Scenario = "actual" | "budget";
+export interface PlanTab { id: string; year: number; scenario: Scenario; label: string; }
 export function planYears(currentYear: number) {
   const actualYears = [currentYear - 3, currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
   const budgetYears = [currentYear + 1, currentYear + 2, currentYear + 3];
-  const actual: PlanTab[] = actualYears.map((year) => ({
-    id: `actual-${year}`,
-    year,
-    scenario: "actual",
-    label: String(year),
-  }));
-  const budget: PlanTab[] = budgetYears.map((year) => ({
-    id: `budget-${year}`,
-    year,
-    scenario: "budget",
-    label: `${year} Budget`,
-  }));
+  const actual: PlanTab[] = actualYears.map((year) => ({ id: `actual-${year}`, year, scenario: "actual", label: String(year) }));
+  const budget: PlanTab[] = budgetYears.map((year) => ({ id: `budget-${year}`, year, scenario: "budget", label: `${year} Budget` }));
   return { actual, budget, all: [...actual, ...budget] };
 }

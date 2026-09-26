@@ -12,10 +12,13 @@ import BudgetVsActual from "@/components/budget/BudgetVsActual";
 import BudgetDashboard from "@/components/budget/BudgetDashboard";
 import CategorySetup from "@/components/budget/CategorySetup";
 import BudgetInstructions from "@/components/budget/BudgetInstructions";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import type { PlannerMode } from "@/lib/budgetPlanner/categories";
 
 const BudgetPlannerPanel = () => {
   const { data: locations } = useUserLocations();
   const [locationId, setLocationId] = useState<string | null>(null);
+  const [plannerMode, setPlannerMode] = useState<PlannerMode>("condensed");
 
   useEffect(() => {
     if (locations && locations.length > 0 && !locationId) {
@@ -23,11 +26,24 @@ const BudgetPlannerPanel = () => {
     }
   }, [locations, locationId]);
 
-  const data = useBudgetPlanner(locationId);
+  const data = useBudgetPlanner(locationId, plannerMode);
   const [tab, setTab] = useState("instructions");
 
   return (
     <div className="space-y-6">
+      <div className="print:hidden">
+        <Label className="mb-2 block font-bold">Planner View</Label>
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          value={plannerMode}
+          onValueChange={(value) => value && setPlannerMode(value as PlannerMode)}
+          className="justify-start"
+        >
+          <ToggleGroupItem value="condensed" className="px-5">Condensed</ToggleGroupItem>
+          <ToggleGroupItem value="full" className="px-5">Full</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="text-xs text-muted-foreground border border-border rounded-md p-3 bg-card flex-1 min-w-[260px]">
           Pawn Gorillas Budget &amp; Cash Flow Planner — proprietary and confidential. Provided for your store's use
@@ -77,16 +93,16 @@ const BudgetPlannerPanel = () => {
             <TabsTrigger value="bva">Budget vs Actual</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="instructions" className="mt-6"><BudgetInstructions /></TabsContent>
+          <TabsContent value="instructions" className="mt-6"><BudgetInstructions mode={plannerMode} /></TabsContent>
           <TabsContent value="dashboard" className="mt-6"><BudgetDashboard data={data} /></TabsContent>
-          <TabsContent value="categories" className="mt-6"><CategorySetup data={data} /></TabsContent>
+          <TabsContent value="categories" className="mt-6"><CategorySetup data={data} mode={plannerMode} /></TabsContent>
           {data.years.all.map((t) => (
             <TabsContent key={t.id} value={t.id} className="mt-6">
-              <YearGrid tab={t} data={data} />
+               <YearGrid tab={t} data={data} mode={plannerMode} />
             </TabsContent>
           ))}
           <TabsContent value="cashflow" className="mt-6"><CashFlowTable data={data} /></TabsContent>
-          <TabsContent value="bva" className="mt-6"><BudgetVsActual data={data} /></TabsContent>
+           <TabsContent value="bva" className="mt-6"><BudgetVsActual data={data} mode={plannerMode} /></TabsContent>
         </Tabs>
       )}
     </div>

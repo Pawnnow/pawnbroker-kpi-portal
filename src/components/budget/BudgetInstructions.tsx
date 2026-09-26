@@ -5,11 +5,16 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   </div>
 );
 
-const BudgetInstructions = () => (
+const BudgetInstructions = ({ mode }: { mode: "condensed" | "full" }) => (
   <div className="bg-card border border-border rounded-lg p-6 space-y-6">
     <div>
       <h2 className="text-xl font-bold">Pawn Gorillas Mastermind — Budget &amp; Cash Flow Planner</h2>
       <p className="text-sm text-muted-foreground mt-1">How the planner is organized (month by month).</p>
+      <p className="text-sm text-muted-foreground mt-2">
+        {mode === "condensed"
+          ? "Condensed combines related expenses into fewer inputs. Its entries are separate from the Full planner."
+          : "Full provides detailed income and expense inputs. Its entries are separate from the Condensed planner."}
+      </p>
     </div>
 
     <Section title="1. Category Setup">
@@ -23,7 +28,7 @@ const BudgetInstructions = () => (
         calculate automatically.
       </p>
       <p>
-        Payroll Tax (FICA &amp; FUTA/SUTA) is auto-calculated as a percentage of Executive + Staff Wages, including the
+        Payroll Tax (FICA &amp; FUTA/SUTA) is auto-calculated as a percentage of {mode === "condensed" ? "Wages" : "Executive + Staff Wages"}, including the
         employer's matching share. Set each store's rate in the Payroll Tax Rate settings on each year — every year can
         have its own rate. 7.65% is pre-filled for FICA; FUTA/SUTA varies by state and starts at 0%.
       </p>
