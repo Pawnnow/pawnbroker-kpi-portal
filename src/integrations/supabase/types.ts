@@ -102,6 +102,7 @@ export type Database = {
           id: string
           label: string
           location_id: string | null
+          planner_mode: string
           updated_at: string
           user_id: string
         }
@@ -111,6 +112,7 @@ export type Database = {
           id?: string
           label: string
           location_id?: string | null
+          planner_mode?: string
           updated_at?: string
           user_id: string
         }
@@ -120,6 +122,7 @@ export type Database = {
           id?: string
           label?: string
           location_id?: string | null
+          planner_mode?: string
           updated_at?: string
           user_id?: string
         }
@@ -147,6 +150,7 @@ export type Database = {
           id: string
           location_id: string | null
           month: number
+          planner_mode: string
           scenario: string
           updated_at: string
           user_id: string
@@ -159,6 +163,7 @@ export type Database = {
           id?: string
           location_id?: string | null
           month: number
+          planner_mode?: string
           scenario?: string
           updated_at?: string
           user_id: string
@@ -171,6 +176,7 @@ export type Database = {
           id?: string
           location_id?: string | null
           month?: number
+          planner_mode?: string
           scenario?: string
           updated_at?: string
           user_id?: string
@@ -202,6 +208,7 @@ export type Database = {
           futa_suta_rate: number
           id: string
           location_id: string | null
+          planner_mode: string
           scenario: string
           starting_cash: number
           tax_rate_city: number
@@ -218,6 +225,7 @@ export type Database = {
           futa_suta_rate?: number
           id?: string
           location_id?: string | null
+          planner_mode?: string
           scenario?: string
           starting_cash?: number
           tax_rate_city?: number
@@ -234,6 +242,7 @@ export type Database = {
           futa_suta_rate?: number
           id?: string
           location_id?: string | null
+          planner_mode?: string
           scenario?: string
           starting_cash?: number
           tax_rate_city?: number
