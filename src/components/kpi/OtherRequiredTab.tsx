@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useKpiFieldConfig } from "@/hooks/useKpiFieldConfig";
 import { useUserFieldLabels } from "@/hooks/useUserFieldLabels";
 import { normalizeCurrencyValue } from "@/lib/utils";
-import type { PlannerMode } from "@/lib/budgetPlanner/categories";
+import { type PlannerMode, MAX_CUSTOM_EXPENSES, DEFAULT_CUSTOM_EXPENSES, customExpenseNumber } from "@/lib/budgetPlanner/categories";
 
 interface OtherRequiredTabProps {
   userId: string | null;
@@ -32,7 +32,7 @@ const FULL_EXPENSE_FIELDS = [
   "marketing_print", "marketing_text_sms", "marketing_social_media", "marketing_online_digital_ads",
   "marketing_tv_radio", "maintenance_repairs", "travel", "meals_entertainment", "office_supplies",
   "professional_fees", "bank_card_fees", "misc_expense",
-  ...Array.from({ length: 5 }, (_, index) => `custom_expense_${index + 1}`),
+  ...Array.from({ length: MAX_CUSTOM_EXPENSES }, (_, index) => `custom_expense_${index + 1}`),
 ];
 const CONDENSED_INCOME_FIELDS = [
   "beginning_cash", "misc_income",
@@ -42,7 +42,7 @@ const CONDENSED_EXPENSE_FIELDS = [
   "condensed_wages", "condensed_insurance", "rent", "condensed_utilities", "condensed_marketing",
   "maintenance_repairs", "condensed_travel_meals", "office_supplies", "professional_fees",
   "bank_card_fees", "misc_expense",
-  ...Array.from({ length: 16 }, (_, index) => `custom_expense_${index + 1}`),
+  ...Array.from({ length: MAX_CUSTOM_EXPENSES }, (_, index) => `custom_expense_${index + 1}`),
 ];
 
 interface FieldRowProps {
@@ -149,6 +149,13 @@ const OtherRequiredTab = ({ userId, locationId, year, month, currency, plannerMo
     };
   }, [allFields, plannerMode]);
 
+  const slotStorageKey = `budget-custom-expense-slots:${userId ?? "anon"}:${plannerMode}`;
+  const [storedSlots, setStoredSlots] = useState(DEFAULT_CUSTOM_EXPENSES);
+  useEffect(() => {
+    const raw = Number(localStorage.getItem(slotStorageKey));
+    setStoredSlots(Number.isFinite(raw) && raw > 0 ? Math.min(raw, MAX_CUSTOM_EXPENSES) : DEFAULT_CUSTOM_EXPENSES);
+  }, [slotStorageKey]);
+
   const labelFor = (fieldName: string, fallback: string) => labels[fieldName] || fallback;
 
   // Prefill saved values for the selected store + period
@@ -229,8 +236,22 @@ const OtherRequiredTab = ({ userId, locationId, year, month, currency, plannerMo
     return <p className="text-muted-foreground text-center py-8">Loading fields...</p>;
   }
 
-  const half = Math.ceil(expenseFields.length / 2);
-  const expenseCols = [expenseFields.slice(0, half), expenseFields.slice(half)];
+  const usedSlots = Math.max(0, ...expenseFields.map((f) => {
+    const n = customExpenseNumber(f.field_name);
+    return n && ((values[f.field_name] ?? "").trim() !== "" || !!labels[f.field_name]) ? n : 0;
+  }));
+  const visibleSlots = Math.min(MAX_CUSTOM_EXPENSES, Math.max(storedSlots, usedSlots, DEFAULT_CUSTOM_EXPENSES));
+  const addCustomExpense = () => {
+    const next = Math.min(MAX_CUSTOM_EXPENSES, visibleSlots + 1);
+    localStorage.setItem(slotStorageKey, String(next));
+    setStoredSlots(next);
+  };
+  const shownExpenses = expenseFields.filter((f) => {
+    const n = customExpenseNumber(f.field_name);
+    return n === null || n <= visibleSlots;
+  });
+  const half = Math.ceil(shownExpenses.length / 2);
+  const expenseCols = [shownExpenses.slice(0, half), shownExpenses.slice(half)];
 
   const renderRows = (fields: typeof incomeFields, isCurrency: boolean) =>
     fields.map((f) => (
@@ -271,6 +292,11 @@ const OtherRequiredTab = ({ userId, locationId, year, month, currency, plannerMo
               <div key={i} className="space-y-3">{renderRows(col, true)}</div>
             ))}
           </div>
+          {visibleSlots < MAX_CUSTOM_EXPENSES && (
+            <Button type="button" size="sm" variant="outline" className="mt-4" onClick={addCustomExpense}>
+              + Add Custom Expense ({visibleSlots}/{MAX_CUSTOM_EXPENSES})
+            </Button>
+          )}
         </div>
       </div>
 
