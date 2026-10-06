@@ -24,24 +24,25 @@ export interface ComputedYear { values: ValueMap; endingInventoryDec: number; }
 
 export function computeYear(inputs: ValueMap, settings: YearSettings, mode: PlannerMode = "full"): ComputedYear {
   const v: ValueMap = { ...inputs };
+  const customIncome = (n: number) => Array.from({ length: n }, (_, i) => get(v, `custom_income_${i + 1}`));
   if (mode === "condensed") {
-    v.total_retail_sales = add(get(v, "retail_sales"), get(v, "custom_income_4"));
-    v.total_tax_exempt = add(get(v, "tax_exempt_sales"), get(v, "custom_income_5"));
-    v.total_income = add(v.total_retail_sales, get(v, "psc_collected"), v.total_tax_exempt, get(v, "misc_income"), get(v, "custom_income_1"), get(v, "custom_income_2"), get(v, "custom_income_3"));
+    v.total_retail_sales = add(get(v, "retail_sales"));
+    v.total_tax_exempt = add(get(v, "tax_exempt_sales"));
+    v.total_income = add(v.total_retail_sales, get(v, "psc_collected"), v.total_tax_exempt, get(v, "misc_income"), ...customIncome(5));
     v.payroll_tax_fica = scale(get(v, "wages"), settings.fica_rate);
     v.payroll_tax_futa_suta = scale(get(v, "wages"), settings.futa_suta_rate);
   } else {
     v.total_retail_sales = add(get(v, "retail_in_store"), get(v, "retail_online"));
     v.total_tax_exempt = add(get(v, "tax_exempt_scrap"), get(v, "tax_exempt_other"));
-    v.total_income = add(v.total_retail_sales, get(v, "psc_collected"), v.total_tax_exempt, get(v, "misc_income"), get(v, "custom_income_1"), get(v, "custom_income_2"), get(v, "custom_income_3"));
+    v.total_income = add(v.total_retail_sales, get(v, "psc_collected"), v.total_tax_exempt, get(v, "misc_income"), ...customIncome(3));
     const wages = add(get(v, "exec_wages"), get(v, "staff_wages"));
     v.payroll_tax_fica = scale(wages, settings.fica_rate);
     v.payroll_tax_futa_suta = scale(wages, settings.futa_suta_rate);
   }
   v.gross_profit = sub(v.total_retail_sales, get(v, "cogs"));
-  const expenseKeys = mode === "condensed"
-    ? ["wages", "custom_expense_6", "payroll_tax_fica", "payroll_tax_futa_suta", "insurance", "custom_expense_7", "custom_expense_8", "rent", "utilities", "custom_expense_9", "custom_expense_10", "custom_expense_11", "marketing", "custom_expense_12", "custom_expense_13", "custom_expense_14", "custom_expense_15", "maintenance_repairs", "travel_meals", "custom_expense_16", "office_supplies", "professional_fees", "bank_card_fees", "misc_expense", "custom_expense_1", "custom_expense_2", "custom_expense_3", "custom_expense_4", "custom_expense_5"]
-    : ["exec_wages", "staff_wages", "payroll_tax_fica", "payroll_tax_futa_suta", "medical_insurance", "liability_insurance", "other_insurance", "rent", "utilities_phone", "utilities_cable_internet", "utilities_water", "utilities_gas_electric", "marketing_print", "marketing_text_sms", "marketing_social_media", "marketing_online_digital_ads", "marketing_tv_radio", "maintenance_repairs", "travel", "meals_entertainment", "office_supplies", "professional_fees", "bank_card_fees", "misc_expense", "custom_expense_1", "custom_expense_2", "custom_expense_3", "custom_expense_4", "custom_expense_5"];
+  const expenseKeys = PLANNER_SCHEMAS[mode].expenses
+    .filter((l) => l.kind === "input" || l.key === "payroll_tax_fica" || l.key === "payroll_tax_futa_suta")
+    .map((l) => l.key);
   v.total_expenses = add(...expenseKeys.map((k) => get(v, k)));
   v.net_operating_income = sub(sub(v.total_income, get(v, "cogs")), v.total_expenses);
   const beginning = zeros(); const ending = zeros(); let carry = settings.beginning_inventory;

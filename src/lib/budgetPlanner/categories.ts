@@ -17,6 +17,18 @@ const input = (key: string, label: string, section: LineSection, kpiFields?: str
 const calc = (key: string, label: string, section: LineSection, emphasis = false): BudgetLine =>
   ({ key, label, section, kind: "calc", emphasis });
 
+export const MAX_CUSTOM_EXPENSES = 50;
+export const DEFAULT_CUSTOM_EXPENSES = 5;
+/** Returns the slot number for a custom_expense_N key, or null for any other key. */
+export const customExpenseNumber = (key: string): number | null => {
+  const m = /^custom_expense_(\d+)$/.exec(key);
+  return m ? Number(m[1]) : null;
+};
+const customExpenseLines = () =>
+  Array.from({ length: MAX_CUSTOM_EXPENSES }, (_, i) => i + 1).map((n) =>
+    input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true),
+  );
+
 export const FULL_INCOME_LINES: BudgetLine[] = [
   input("retail_in_store", "Retail Sales - In Store", "income", ["retail_sales"]),
   input("retail_online", "Retail Sales - Online", "income", ["online_sales"]),
@@ -57,23 +69,21 @@ export const FULL_EXPENSE_LINES: BudgetLine[] = [
   input("professional_fees", "Professional Fees (Legal/Accounting)", "expenses", ["professional_fees"]),
   input("bank_card_fees", "Bank & Credit Card Fees", "expenses", ["bank_card_fees"]),
   input("misc_expense", "Misc Expense", "expenses", ["misc_expense"]),
-  ...[1, 2, 3, 4, 5].map((n) => input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true)),
+  ...customExpenseLines(),
   calc("total_expenses", "TOTAL EXPENSES", "expenses", true),
   calc("net_operating_income", "NET OPERATING INCOME", "expenses", true),
 ];
 
 export const CONDENSED_INCOME_LINES: BudgetLine[] = [
   input("retail_sales", "Retail Sales", "income", ["retail_sales", "online_sales"]),
-  input("custom_income_4", "Custom Income 4", "income", ["custom_income_4"], true),
   calc("total_retail_sales", "Total Retail Sales", "income"),
   input("cogs", "Cost of Goods Sold (COGS)", "income", ["retail_cogs"]),
   calc("gross_profit", "Gross Profit", "income"),
   input("psc_collected", "Pawn Service Charges (PSC) Collected", "income", ["psc_collected"]),
   input("tax_exempt_sales", "Tax Exempt Sales", "income", ["tax_exempt_sales", "scrap_sales"]),
-  input("custom_income_5", "Custom Income 5", "income", ["custom_income_5"], true),
   calc("total_tax_exempt", "Total Tax Exempt Sales", "income"),
   input("misc_income", "Misc Income", "income", ["misc_income"]),
-  ...[1, 2, 3].map((n) => input(`custom_income_${n}`, `Custom Income ${n}`, "income", [`custom_income_${n}`], true)),
+  ...[1, 2, 3, 4, 5].map((n) => input(`custom_income_${n}`, `Custom Income ${n}`, "income", [`custom_income_${n}`], true)),
   calc("total_income", "TOTAL INCOME", "income", true),
 ];
 
@@ -91,9 +101,7 @@ export const CONDENSED_EXPENSE_LINES: BudgetLine[] = [
   input("professional_fees", "Professional Fees (Legal/Accounting)", "expenses", ["professional_fees"]),
   input("bank_card_fees", "Bank & Credit Card Fees", "expenses", ["bank_card_fees"]),
   input("misc_expense", "Misc Expense", "expenses", ["misc_expense"]),
-  ...Array.from({ length: 16 }, (_, index) => index + 1).map((n) =>
-    input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true),
-  ),
+  ...customExpenseLines(),
   calc("total_expenses", "TOTAL EXPENSES", "expenses", true),
   calc("net_operating_income", "NET OPERATING INCOME", "expenses", true),
 ];
