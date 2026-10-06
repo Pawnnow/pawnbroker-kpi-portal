@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PLANNER_SCHEMAS, planYears, PlanTab, PlannerMode, customExpenseNumber, MAX_CUSTOM_EXPENSES, DEFAULT_CUSTOM_EXPENSES } from "@/lib/budgetPlanner/categories";
+import { PLANNER_SCHEMAS, planYears, PlanTab, PlannerMode, customSlot } from "@/lib/budgetPlanner/categories";
+import { useCustomSlots, type CustomSlots } from "@/hooks/useCustomSlots";
 import {
   DEFAULT_SETTINGS,
   YearSettings,
@@ -37,10 +38,9 @@ export interface BudgetPlannerData {
   priorTabId: Record<string, string | null>;
   kpiActuals: Record<string, number>; // `${scenario}:${year}:${month}:${lineKey}` (actual scenario only)
   saving: boolean;
-  /** how many Custom Expense rows are shown (5 by default, up to 50) */
-  visibleCustomExpenses: number;
-  addCustomExpense: () => void;
-  /** false for custom expense rows beyond the visible count */
+  /** shown/add/hide controls for Custom Income and Custom Expense rows */
+  customSlots: CustomSlots;
+  /** false for custom rows beyond the visible count */
   isLineVisible: (key: string) => boolean;
 }
 
@@ -352,11 +352,11 @@ export function useBudgetPlanner(locationId: string | null, plannerMode: Planner
     if (timer.current) clearTimeout(timer.current);
   }, []);
 
-  const usedCustomExpenses = useMemo(() => {
-    let max = 0;
+  const usedCustom = useMemo(() => {
+    const max = { income: 0, expense: 0 };
     const consider = (key: string, has: boolean) => {
-      const n = customExpenseNumber(key);
-      if (n && has && n > max) max = n;
+      const slot = customSlot(key);
+      if (slot && has && slot.n > max[slot.kind]) max[slot.kind] = slot.n;
     };
     Object.entries(cells).forEach(([k, v]) => consider(k.split(":").pop() ?? "", String(v ?? "").trim() !== ""));
     Object.entries(kpiActuals).forEach(([k, v]) => consider(k.split(":").pop() ?? "", !!v));
@@ -364,22 +364,7 @@ export function useBudgetPlanner(locationId: string | null, plannerMode: Planner
     return max;
   }, [cells, kpiActuals, labels, schema]);
 
-  const slotStorageKey = `budget-custom-expense-slots:${userId ?? "anon"}:${plannerMode}`;
-  const [storedSlots, setStoredSlots] = useState(DEFAULT_CUSTOM_EXPENSES);
-  useEffect(() => {
-    const raw = Number(localStorage.getItem(slotStorageKey));
-    setStoredSlots(Number.isFinite(raw) && raw > 0 ? Math.min(raw, MAX_CUSTOM_EXPENSES) : DEFAULT_CUSTOM_EXPENSES);
-  }, [slotStorageKey]);
-  const visibleCustomExpenses = Math.min(MAX_CUSTOM_EXPENSES, Math.max(storedSlots, usedCustomExpenses, DEFAULT_CUSTOM_EXPENSES));
-  const addCustomExpense = useCallback(() => {
-    const next = Math.min(MAX_CUSTOM_EXPENSES, visibleCustomExpenses + 1);
-    localStorage.setItem(slotStorageKey, String(next));
-    setStoredSlots(next);
-  }, [visibleCustomExpenses, slotStorageKey]);
-  const isLineVisible = useCallback((key: string) => {
-    const n = customExpenseNumber(key);
-    return n === null || n <= visibleCustomExpenses;
-  }, [visibleCustomExpenses]);
+  const slots = useCustomSlots(userId, plannerMode, usedCustom);
 
   return {
     loading,
@@ -401,9 +386,8 @@ export function useBudgetPlanner(locationId: string | null, plannerMode: Planner
     priorTabId,
     kpiActuals,
     saving,
-    visibleCustomExpenses,
-    addCustomExpense,
-    isLineVisible,
+    customSlots: slots,
+    isLineVisible: slots.isVisible,
   };
 }
 

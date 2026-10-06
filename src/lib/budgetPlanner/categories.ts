@@ -24,6 +24,20 @@ export const customExpenseNumber = (key: string): number | null => {
   const m = /^custom_expense_(\d+)$/.exec(key);
   return m ? Number(m[1]) : null;
 };
+export type CustomKind = "income" | "expense";
+export const MAX_CUSTOM_INCOMES = 50;
+export const DEFAULT_CUSTOM_INCOMES = 5;
+export const MAX_CUSTOM = { income: MAX_CUSTOM_INCOMES, expense: MAX_CUSTOM_EXPENSES } as const;
+export const DEFAULT_CUSTOM = { income: DEFAULT_CUSTOM_INCOMES, expense: DEFAULT_CUSTOM_EXPENSES } as const;
+/** Identifies custom_income_N / custom_expense_N keys. */
+export const customSlot = (key: string): { kind: CustomKind; n: number } | null => {
+  const m = /^custom_(income|expense)_(\d+)$/.exec(key);
+  return m ? { kind: m[1] as CustomKind, n: Number(m[2]) } : null;
+};
+const customIncomeLines = () =>
+  Array.from({ length: MAX_CUSTOM_INCOMES }, (_, i) => i + 1).map((n) =>
+    input(`custom_income_${n}`, `Custom Income ${n}`, "income", [`custom_income_${n}`], true),
+  );
 const customExpenseLines = () =>
   Array.from({ length: MAX_CUSTOM_EXPENSES }, (_, i) => i + 1).map((n) =>
     input(`custom_expense_${n}`, `Custom Expense ${n}`, "expenses", [`custom_expense_${n}`], true),
@@ -40,7 +54,7 @@ export const FULL_INCOME_LINES: BudgetLine[] = [
   input("tax_exempt_other", "Tax Exempt Sales - Other", "income", ["tax_exempt_sales"]),
   calc("total_tax_exempt", "Total Tax Exempt Sales", "income"),
   input("misc_income", "Misc Income", "income", ["misc_income"]),
-  ...[1, 2, 3].map((n) => input(`custom_income_${n}`, `Custom Income ${n}`, "income", [`custom_income_${n}`], true)),
+  ...customIncomeLines(),
   calc("total_income", "TOTAL INCOME", "income", true),
 ];
 
@@ -83,7 +97,7 @@ export const CONDENSED_INCOME_LINES: BudgetLine[] = [
   input("tax_exempt_sales", "Tax Exempt Sales", "income", ["tax_exempt_sales", "scrap_sales"]),
   calc("total_tax_exempt", "Total Tax Exempt Sales", "income"),
   input("misc_income", "Misc Income", "income", ["misc_income"]),
-  ...[1, 2, 3, 4, 5].map((n) => input(`custom_income_${n}`, `Custom Income ${n}`, "income", [`custom_income_${n}`], true)),
+  ...customIncomeLines(),
   calc("total_income", "TOTAL INCOME", "income", true),
 ];
 
