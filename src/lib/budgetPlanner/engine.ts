@@ -24,17 +24,17 @@ export interface ComputedYear { values: ValueMap; endingInventoryDec: number; }
 
 export function computeYear(inputs: ValueMap, settings: YearSettings, mode: PlannerMode = "full"): ComputedYear {
   const v: ValueMap = { ...inputs };
-  const customIncome = (n: number) => Array.from({ length: n }, (_, i) => get(v, `custom_income_${i + 1}`));
+  const customIncome = () => PLANNER_SCHEMAS[mode].income.filter((l) => l.key.startsWith("custom_income_")).map((l) => get(v, l.key));
   if (mode === "condensed") {
     v.total_retail_sales = add(get(v, "retail_sales"));
     v.total_tax_exempt = add(get(v, "tax_exempt_sales"));
-    v.total_income = add(v.total_retail_sales, get(v, "psc_collected"), v.total_tax_exempt, get(v, "misc_income"), ...customIncome(5));
+    v.total_income = add(v.total_retail_sales, get(v, "psc_collected"), v.total_tax_exempt, get(v, "misc_income"), ...customIncome());
     v.payroll_tax_fica = scale(get(v, "wages"), settings.fica_rate);
     v.payroll_tax_futa_suta = scale(get(v, "wages"), settings.futa_suta_rate);
   } else {
     v.total_retail_sales = add(get(v, "retail_in_store"), get(v, "retail_online"));
     v.total_tax_exempt = add(get(v, "tax_exempt_scrap"), get(v, "tax_exempt_other"));
-    v.total_income = add(v.total_retail_sales, get(v, "psc_collected"), v.total_tax_exempt, get(v, "misc_income"), ...customIncome(3));
+    v.total_income = add(v.total_retail_sales, get(v, "psc_collected"), v.total_tax_exempt, get(v, "misc_income"), ...customIncome());
     const wages = add(get(v, "exec_wages"), get(v, "staff_wages"));
     v.payroll_tax_fica = scale(wages, settings.fica_rate);
     v.payroll_tax_futa_suta = scale(wages, settings.futa_suta_rate);
