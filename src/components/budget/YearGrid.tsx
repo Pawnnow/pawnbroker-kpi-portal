@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { PLANNER_SCHEMAS, MAX_CUSTOM_EXPENSES, MONTHS, BudgetLine, PlanTab, PlannerMode } from "@/lib/budgetPlanner/categories";
+import CustomSlotControls from "./CustomSlotControls";
+import { PLANNER_SCHEMAS, MONTHS, BudgetLine, PlanTab, PlannerMode } from "@/lib/budgetPlanner/categories";
 import { fmtMoney, sum, DEFAULT_SETTINGS, yoyGrowth, pctOfRevenue, fmtPctCell } from "@/lib/budgetPlanner/engine";
 import type { BudgetPlannerData } from "@/hooks/useBudgetPlanner";
 
@@ -130,12 +130,10 @@ const YearGrid = ({ tab, data, mode }: Props) => {
                     </tr>
                   );
                 })}
-                {section.title === "Monthly Expenses" && data.visibleCustomExpenses < MAX_CUSTOM_EXPENSES && (
-                  <tr key="add-custom-expense">
+                {section.title !== "Pawn Activity, Inventory & Sales Tax" && (
+                  <tr key={`custom-controls-${section.title}`}>
                     <td className="p-2 sticky left-0 bg-card" colSpan={MONTHS.length + (isBudget ? 5 : 4)}>
-                      <Button size="sm" variant="outline" onClick={data.addCustomExpense}>
-                        + Add Custom Expense ({data.visibleCustomExpenses}/{MAX_CUSTOM_EXPENSES})
-                      </Button>
+                      <CustomSlotControls slots={data.customSlots} kind={section.title === "Income" ? "income" : "expense"} />
                     </td>
                   </tr>
                 )}

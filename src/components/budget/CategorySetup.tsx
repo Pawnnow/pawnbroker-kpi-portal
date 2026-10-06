@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { PLANNER_SCHEMAS, PlannerMode, MAX_CUSTOM_EXPENSES } from "@/lib/budgetPlanner/categories";
+import CustomSlotControls from "./CustomSlotControls";
+import { PLANNER_SCHEMAS, PlannerMode } from "@/lib/budgetPlanner/categories";
 import type { BudgetPlannerData } from "@/hooks/useBudgetPlanner";
 
 const CategorySetup = ({ data, mode }: { data: BudgetPlannerData; mode: PlannerMode }) => {
@@ -37,10 +37,8 @@ const CategorySetup = ({ data, mode }: { data: BudgetPlannerData; mode: PlannerM
             </div>
           ))}
         </div>
-        {section.title === "Monthly Expenses" && data.visibleCustomExpenses < MAX_CUSTOM_EXPENSES && (
-          <Button size="sm" variant="outline" className="mt-3" onClick={data.addCustomExpense}>
-            + Add Custom Expense ({data.visibleCustomExpenses}/{MAX_CUSTOM_EXPENSES})
-          </Button>
+        {section.title !== "Pawn Activity, Inventory & Sales Tax" && (
+          <CustomSlotControls className="mt-3" slots={data.customSlots} kind={section.title === "Income" ? "income" : "expense"} />
         )}
       </div>
     ))}

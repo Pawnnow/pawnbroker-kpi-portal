@@ -8,7 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useKpiFieldConfig } from "@/hooks/useKpiFieldConfig";
 import { useUserFieldLabels } from "@/hooks/useUserFieldLabels";
 import { normalizeCurrencyValue } from "@/lib/utils";
-import { type PlannerMode, MAX_CUSTOM_EXPENSES, DEFAULT_CUSTOM_EXPENSES, customExpenseNumber } from "@/lib/budgetPlanner/categories";
+import { type PlannerMode, MAX_CUSTOM_EXPENSES, MAX_CUSTOM_INCOMES, customSlot } from "@/lib/budgetPlanner/categories";
+import { useCustomSlots } from "@/hooks/useCustomSlots";
+import CustomSlotControls from "@/components/budget/CustomSlotControls";
 
 interface OtherRequiredTabProps {
   userId: string | null;
@@ -23,7 +25,8 @@ const NUMERIC = /^-?\d*\.?\d{0,2}$/;
 const isCustomSlot = (name: string) => name.startsWith("custom_income_") || name.startsWith("custom_expense_");
 
 const FULL_INCOME_FIELDS = [
-  "beginning_cash", "misc_income", "custom_income_1", "custom_income_2", "custom_income_3",
+  "beginning_cash", "misc_income",
+  ...Array.from({ length: MAX_CUSTOM_INCOMES }, (_, index) => `custom_income_${index + 1}`),
 ];
 const FULL_EXPENSE_FIELDS = [
   "exec_wages", "staff_wages", "payroll_tax_fica", "payroll_tax_futa_suta",
@@ -36,7 +39,7 @@ const FULL_EXPENSE_FIELDS = [
 ];
 const CONDENSED_INCOME_FIELDS = [
   "beginning_cash", "misc_income",
-  ...Array.from({ length: 5 }, (_, index) => `custom_income_${index + 1}`),
+  ...Array.from({ length: MAX_CUSTOM_INCOMES }, (_, index) => `custom_income_${index + 1}`),
 ];
 const CONDENSED_EXPENSE_FIELDS = [
   "condensed_wages", "condensed_insurance", "rent", "condensed_utilities", "condensed_marketing",
@@ -149,14 +152,17 @@ const OtherRequiredTab = ({ userId, locationId, year, month, currency, plannerMo
     };
   }, [allFields, plannerMode]);
 
-  const slotStorageKey = `budget-custom-expense-slots:${userId ?? "anon"}:${plannerMode}`;
-  const [storedSlots, setStoredSlots] = useState(DEFAULT_CUSTOM_EXPENSES);
-  useEffect(() => {
-    const raw = Number(localStorage.getItem(slotStorageKey));
-    setStoredSlots(Number.isFinite(raw) && raw > 0 ? Math.min(raw, MAX_CUSTOM_EXPENSES) : DEFAULT_CUSTOM_EXPENSES);
-  }, [slotStorageKey]);
-
   const labelFor = (fieldName: string, fallback: string) => labels[fieldName] || fallback;
+
+  const usedCustom = useMemo(() => {
+    const max = { income: 0, expense: 0 };
+    [...incomeFields, ...expenseFields].forEach((f) => {
+      const slot = customSlot(f.field_name);
+      if (slot && ((values[f.field_name] ?? "").trim() !== "" || !!labels[f.field_name]) && slot.n > max[slot.kind]) max[slot.kind] = slot.n;
+    });
+    return max;
+  }, [incomeFields, expenseFields, values, labels]);
+  const slots = useCustomSlots(userId, plannerMode, usedCustom);
 
   // Prefill saved values for the selected store + period
   useEffect(() => {
@@ -236,20 +242,8 @@ const OtherRequiredTab = ({ userId, locationId, year, month, currency, plannerMo
     return <p className="text-muted-foreground text-center py-8">Loading fields...</p>;
   }
 
-  const usedSlots = Math.max(0, ...expenseFields.map((f) => {
-    const n = customExpenseNumber(f.field_name);
-    return n && ((values[f.field_name] ?? "").trim() !== "" || !!labels[f.field_name]) ? n : 0;
-  }));
-  const visibleSlots = Math.min(MAX_CUSTOM_EXPENSES, Math.max(storedSlots, usedSlots, DEFAULT_CUSTOM_EXPENSES));
-  const addCustomExpense = () => {
-    const next = Math.min(MAX_CUSTOM_EXPENSES, visibleSlots + 1);
-    localStorage.setItem(slotStorageKey, String(next));
-    setStoredSlots(next);
-  };
-  const shownExpenses = expenseFields.filter((f) => {
-    const n = customExpenseNumber(f.field_name);
-    return n === null || n <= visibleSlots;
-  });
+  const shownExpenses = expenseFields.filter((f) => slots.isVisible(f.field_name));
+  const shownIncome = incomeFields.filter((f) => slots.isVisible(f.field_name));
   const half = Math.ceil(shownExpenses.length / 2);
   const expenseCols = [shownExpenses.slice(0, half), shownExpenses.slice(half)];
 
@@ -282,7 +276,8 @@ const OtherRequiredTab = ({ userId, locationId, year, month, currency, plannerMo
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
         <div className="bg-card rounded-lg border border-border p-6">
           <h3 className="text-lg font-bold text-foreground mb-4">Income</h3>
-          <div className="space-y-3">{renderRows(incomeFields, true)}</div>
+          <div className="space-y-3">{renderRows(shownIncome, true)}</div>
+          <CustomSlotControls className="mt-4" slots={slots} kind="income" />
         </div>
 
         <div className="bg-card rounded-lg border border-border p-6 xl:col-span-2">
@@ -292,11 +287,7 @@ const OtherRequiredTab = ({ userId, locationId, year, month, currency, plannerMo
               <div key={i} className="space-y-3">{renderRows(col, true)}</div>
             ))}
           </div>
-          {visibleSlots < MAX_CUSTOM_EXPENSES && (
-            <Button type="button" size="sm" variant="outline" className="mt-4" onClick={addCustomExpense}>
-              + Add Custom Expense ({visibleSlots}/{MAX_CUSTOM_EXPENSES})
-            </Button>
-          )}
+          <CustomSlotControls className="mt-4" slots={slots} kind="expense" />
         </div>
       </div>
 
