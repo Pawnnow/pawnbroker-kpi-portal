@@ -176,7 +176,6 @@ const PawnmateUpload = () => {
                 year={year}
                 month={month}
                 currency={currency}
-                plannerMode={plannerMode}
               />
             </TabsContent>
 
@@ -187,6 +186,7 @@ const PawnmateUpload = () => {
                 year={year}
                 month={month}
                 currency={currency}
+                plannerMode={plannerMode}
               />
             </TabsContent>
           </Tabs>

@@ -140,7 +140,8 @@ export function useBudgetPlanner(locationId: string | null, plannerMode: Planner
        };
        const nextKpi: Record<string, number> = {};
        Object.entries(kpiByLine).forEach(([key, fields]) => {
-         const lineKey = key.split(":").at(-1) ?? "";
+         const keyParts = key.split(":");
+         const lineKey = keyParts[keyParts.length - 1] ?? "";
          const preferred = combinedPriority[lineKey]?.find((field) => fields[field] !== undefined);
          nextKpi[key] = preferred ? fields[preferred] : sum(Object.values(fields));
        });
