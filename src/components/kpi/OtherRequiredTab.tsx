@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useKpiFieldConfig } from "@/hooks/useKpiFieldConfig";
 import { useUserFieldLabels } from "@/hooks/useUserFieldLabels";
 import { normalizeCurrencyValue } from "@/lib/utils";
+import type { PlannerMode } from "@/lib/budgetPlanner/categories";
 
 interface OtherRequiredTabProps {
   userId: string | null;
@@ -15,10 +16,34 @@ interface OtherRequiredTabProps {
   year: number | null;
   month: number | null;
   currency: string;
+  plannerMode: PlannerMode;
 }
 
 const NUMERIC = /^-?\d*\.?\d{0,2}$/;
 const isCustomSlot = (name: string) => name.startsWith("custom_income_") || name.startsWith("custom_expense_");
+
+const FULL_INCOME_FIELDS = [
+  "beginning_cash", "misc_income", "custom_income_1", "custom_income_2", "custom_income_3",
+];
+const FULL_EXPENSE_FIELDS = [
+  "exec_wages", "staff_wages", "payroll_tax_fica", "payroll_tax_futa_suta",
+  "medical_insurance", "liability_insurance", "other_insurance", "rent",
+  "utilities_phone", "utilities_cable_internet", "utilities_water", "utilities_gas_electric",
+  "marketing_print", "marketing_text_sms", "marketing_social_media", "marketing_online_digital_ads",
+  "marketing_tv_radio", "maintenance_repairs", "travel", "meals_entertainment", "office_supplies",
+  "professional_fees", "bank_card_fees", "misc_expense",
+  ...Array.from({ length: 5 }, (_, index) => `custom_expense_${index + 1}`),
+];
+const CONDENSED_INCOME_FIELDS = [
+  "beginning_cash", "misc_income",
+  ...Array.from({ length: 5 }, (_, index) => `custom_income_${index + 1}`),
+];
+const CONDENSED_EXPENSE_FIELDS = [
+  "condensed_wages", "condensed_insurance", "rent", "condensed_utilities", "condensed_marketing",
+  "maintenance_repairs", "condensed_travel_meals", "office_supplies", "professional_fees",
+  "bank_card_fees", "misc_expense",
+  ...Array.from({ length: 16 }, (_, index) => `custom_expense_${index + 1}`),
+];
 
 interface FieldRowProps {
   name: string;
@@ -59,14 +84,16 @@ const FieldRow = ({ name, label, isCurrency, editableLabel, value, onChange, onR
           <Label htmlFor={name} className="text-sm text-foreground flex-1 flex items-center gap-1 min-w-0">
             <span className="truncate">{label}</span>
             {editableLabel && (
-              <button
+              <Button
                 type="button"
+                size="icon"
+                variant="ghost"
                 aria-label={`Rename ${label}`}
                 onClick={() => setEditing(true)}
-                className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                className="h-6 w-6 text-muted-foreground flex-shrink-0"
               >
                 <Pencil className="w-3 h-3" />
-              </button>
+              </Button>
             )}
           </Label>
         )}
@@ -103,25 +130,24 @@ const FieldRow = ({ name, label, isCurrency, editableLabel, value, onChange, onR
   );
 };
 
-const OtherRequiredTab = ({ userId, locationId, year, month, currency }: OtherRequiredTabProps) => {
+const OtherRequiredTab = ({ userId, locationId, year, month, currency, plannerMode }: OtherRequiredTabProps) => {
   const { data: allFields, isLoading } = useKpiFieldConfig();
-  const { labels, saveLabel } = useUserFieldLabels(userId);
+  const { labels, saveLabel } = useUserFieldLabels(userId, plannerMode);
   const { toast } = useToast();
   const [values, setValues] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
   const { reviewsField, incomeFields, expenseFields } = useMemo(() => {
     const visible = (allFields ?? []).filter((f) => f.is_visible);
+    const byName = new Map(visible.map((field) => [field.field_name, field]));
+    const incomeNames = plannerMode === "condensed" ? CONDENSED_INCOME_FIELDS : FULL_INCOME_FIELDS;
+    const expenseNames = plannerMode === "condensed" ? CONDENSED_EXPENSE_FIELDS : FULL_EXPENSE_FIELDS;
     return {
       reviewsField: visible.find((f) => f.field_name === "num_google_reviews") ?? null,
-      incomeFields: visible
-        .filter((f) => f.column_group === ("income" as any))
-        .sort((a, b) => a.display_order - b.display_order),
-      expenseFields: visible
-        .filter((f) => f.column_group === ("monthly_expenses" as any))
-        .sort((a, b) => a.display_order - b.display_order),
+      incomeFields: incomeNames.map((name) => byName.get(name)).filter((field): field is NonNullable<typeof field> => !!field),
+      expenseFields: expenseNames.map((name) => byName.get(name)).filter((field): field is NonNullable<typeof field> => !!field),
     };
-  }, [allFields]);
+  }, [allFields, plannerMode]);
 
   const labelFor = (fieldName: string, fallback: string) => labels[fieldName] || fallback;
 
@@ -149,7 +175,7 @@ const OtherRequiredTab = ({ userId, locationId, year, month, currency }: OtherRe
 
     load();
     return () => { cancelled = true; };
-  }, [userId, year, month, locationId]);
+  }, [userId, year, month, locationId, plannerMode]);
 
   const handleChange = (name: string, value: string) => setValues((prev) => ({ ...prev, [name]: value }));
 

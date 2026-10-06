@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import MonthSelector from "@/components/kpi/MonthSelector";
 import BackupExtractorTab from "@/components/kpi/BackupExtractorTab";
 import OtherRequiredTab from "@/components/kpi/OtherRequiredTab";
@@ -19,6 +20,7 @@ import { useUserLocations } from "@/hooks/useUserLocations";
 import { useSoftwarePlatform } from "@/hooks/useSoftwarePlatform";
 import { useNavigate } from "react-router-dom";
 import { LogOut, BarChart3, Shield, Store, Calculator } from "lucide-react";
+import type { PlannerMode } from "@/lib/budgetPlanner/categories";
 
 const PawnmateUpload = () => {
   const navigate = useNavigate();
@@ -32,6 +34,7 @@ const PawnmateUpload = () => {
   const [currency, setCurrency] = useState<string>("USD");
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("extractor");
+  const [plannerMode, setPlannerMode] = useState<PlannerMode>("condensed");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -144,6 +147,20 @@ const PawnmateUpload = () => {
             </div>
           </div>
 
+          <div>
+            <Label className="mb-2 block font-bold">Upload View</Label>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={plannerMode}
+              onValueChange={(value) => value && setPlannerMode(value as PlannerMode)}
+              className="justify-start"
+            >
+              <ToggleGroupItem value="condensed" className="px-5">Condensed</ToggleGroupItem>
+              <ToggleGroupItem value="full" className="px-5">Full</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full max-w-md grid-cols-2">
               <TabsTrigger value="extractor">Backup Upload</TabsTrigger>
@@ -169,6 +186,7 @@ const PawnmateUpload = () => {
                 year={year}
                 month={month}
                 currency={currency}
+                plannerMode={plannerMode}
               />
             </TabsContent>
           </Tabs>

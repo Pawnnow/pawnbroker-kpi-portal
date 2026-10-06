@@ -527,6 +527,7 @@ export type Database = {
           field_name: string
           id: string
           label: string
+          planner_mode: string
           updated_at: string
           user_id: string
         }
@@ -535,6 +536,7 @@ export type Database = {
           field_name: string
           id?: string
           label: string
+          planner_mode?: string
           updated_at?: string
           user_id: string
         }
@@ -543,6 +545,7 @@ export type Database = {
           field_name?: string
           id?: string
           label?: string
+          planner_mode?: string
           updated_at?: string
           user_id?: string
         }

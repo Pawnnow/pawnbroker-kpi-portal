@@ -116,18 +116,35 @@ export function useBudgetPlanner(locationId: string | null, plannerMode: Planner
         nextLabels[String(r.category_key)] = String(r.label);
       });
 
-      const nextKpi: Record<string, number> = {};
+       const kpiByLine: Record<string, Record<string, number>> = {};
       (kpiRes.data ?? []).forEach((r) => {
          const lines = schema.kpiToLines[String(r.field_name)];
          if (!lines) return;
         const raw = String(r.field_value ?? "").replace(/[$,]/g, "");
         const num = parseFloat(raw);
         if (Number.isNaN(num)) return;
-         lines.forEach((line) => {
-           const key = ck("actual", Number(r.year), Number(r.month), line);
-           nextKpi[key] = (nextKpi[key] ?? 0) + num;
+          lines.forEach((line) => {
+            const key = ck("actual", Number(r.year), Number(r.month), line);
+            const fieldName = String(r.field_name);
+            kpiByLine[key] = kpiByLine[key] ?? {};
+            kpiByLine[key][fieldName] = (kpiByLine[key][fieldName] ?? 0) + num;
          });
       });
+
+       const combinedPriority: Record<string, string[]> = {
+         wages: ["condensed_wages"],
+         insurance: ["condensed_insurance"],
+         utilities: ["condensed_utilities"],
+         marketing: ["condensed_marketing", "total_marketing_spent"],
+         travel_meals: ["condensed_travel_meals"],
+       };
+       const nextKpi: Record<string, number> = {};
+       Object.entries(kpiByLine).forEach(([key, fields]) => {
+         const keyParts = key.split(":");
+         const lineKey = keyParts[keyParts.length - 1] ?? "";
+         const preferred = combinedPriority[lineKey]?.find((field) => fields[field] !== undefined);
+         nextKpi[key] = preferred ? fields[preferred] : sum(Object.values(fields));
+       });
 
       setCells(nextCells);
       setSettings(nextSettings);
