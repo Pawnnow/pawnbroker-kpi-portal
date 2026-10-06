@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PLANNER_SCHEMAS, planYears, PlanTab, PlannerMode, customSlot }
-import { useCustomSlots, type CustomSlots } from "@/hooks/useCustomSlots"; from "@/lib/budgetPlanner/categories";
+import { PLANNER_SCHEMAS, planYears, PlanTab, PlannerMode, customSlot } from "@/lib/budgetPlanner/categories";
+import { useCustomSlots, type CustomSlots } from "@/hooks/useCustomSlots";
 import {
   DEFAULT_SETTINGS,
   YearSettings,
