@@ -78,15 +78,15 @@ export const CONDENSED_INCOME_LINES: BudgetLine[] = [
 ];
 
 export const CONDENSED_EXPENSE_LINES: BudgetLine[] = [
-  input("wages", "Wages", "expenses", ["exec_wages", "staff_wages"]),
+  input("wages", "Wages", "expenses", ["condensed_wages", "exec_wages", "staff_wages"]),
   calc("payroll_tax_fica", "Payroll Tax - FICA", "expenses"),
   calc("payroll_tax_futa_suta", "Payroll Tax - FUTA/SUTA", "expenses"),
-  input("insurance", "Insurance", "expenses", ["medical_insurance", "liability_insurance", "other_insurance"]),
+  input("insurance", "Insurance", "expenses", ["condensed_insurance", "medical_insurance", "liability_insurance", "other_insurance"]),
   input("rent", "Rent", "expenses", ["rent"]),
-  input("utilities", "Utilities", "expenses", ["utilities_phone", "utilities_cable_internet", "utilities_water", "utilities_gas_electric"]),
-  input("marketing", "Marketing", "expenses", ["total_marketing_spent", "marketing_print", "marketing_text", "marketing_text_sms", "marketing_social_media", "marketing_online_digital_ads", "marketing_website", "marketing_tv", "marketing_radio", "marketing_consulting"]),
+  input("utilities", "Utilities", "expenses", ["condensed_utilities", "utilities_phone", "utilities_cable_internet", "utilities_water", "utilities_gas_electric"]),
+  input("marketing", "Marketing", "expenses", ["condensed_marketing", "total_marketing_spent", "marketing_print", "marketing_text", "marketing_text_sms", "marketing_social_media", "marketing_online_digital_ads", "marketing_website", "marketing_tv", "marketing_radio", "marketing_consulting"]),
   input("maintenance_repairs", "Maintenance & Repairs", "expenses", ["maintenance_repairs"]),
-  input("travel_meals", "Travel & Meals", "expenses", ["travel", "meals_entertainment"]),
+  input("travel_meals", "Travel & Meals", "expenses", ["condensed_travel_meals", "travel", "meals_entertainment"]),
   input("office_supplies", "Office Supplies", "expenses", ["office_supplies"]),
   input("professional_fees", "Professional Fees (Legal/Accounting)", "expenses", ["professional_fees"]),
   input("bank_card_fees", "Bank & Credit Card Fees", "expenses", ["bank_card_fees"]),
