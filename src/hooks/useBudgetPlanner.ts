@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PLANNER_SCHEMAS, planYears, PlanTab, PlannerMode } from "@/lib/budgetPlanner/categories";
+import { PLANNER_SCHEMAS, planYears, PlanTab, PlannerMode, customExpenseNumber, MAX_CUSTOM_EXPENSES, DEFAULT_CUSTOM_EXPENSES } from "@/lib/budgetPlanner/categories";
 import {
   DEFAULT_SETTINGS,
   YearSettings,

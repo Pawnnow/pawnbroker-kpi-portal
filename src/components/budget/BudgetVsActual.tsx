@@ -6,7 +6,7 @@ import { fmtMoney, sum } from "@/lib/budgetPlanner/engine";
 import type { BudgetPlannerData } from "@/hooks/useBudgetPlanner";
 
 const BudgetVsActual = ({ data, mode }: { data: BudgetPlannerData; mode: PlannerMode }) => {
-  const lines = [...PLANNER_SCHEMAS[mode].income, ...PLANNER_SCHEMAS[mode].expenses];
+  const lines = [...PLANNER_SCHEMAS[mode].income, ...PLANNER_SCHEMAS[mode].expenses].filter((l) => data.isLineVisible(l.key));
   const currentYear = new Date().getFullYear();
   const [budgetTab, setBudgetTab] = useState(`budget-${currentYear + 1}`);
   const [actualTab, setActualTab] = useState(`actual-${currentYear}`);
